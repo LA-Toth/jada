@@ -17,12 +17,22 @@
 package me.laszloattilatoth.jada;
 
 import me.laszloattilatoth.jada.config.Config;
+import me.laszloattilatoth.jada.config.ProxyConfig;
+import me.laszloattilatoth.jada.proxy.ProxyMain;
 import me.laszloattilatoth.jada.proxy.plug.PlugMain;
 import me.laszloattilatoth.jada.proxy.socks.SocksMain;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.commons.cli.*;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,7 +47,7 @@ public class Main {
         String filename;
 
         options.addOption("c", "config", true, "Configuration file");
-        options.addOption("p", "port", true, "Port number");
+        options.addOption("V", "validate", true, "Validate only");
         options.addOption(Option.builder("h").longOpt("help").desc("Print help").build());
 
         CommandLineParser parser = new DefaultParser();
@@ -68,10 +78,61 @@ public class Main {
 
         PlugMain.setup();
         SocksMain.setup();
+
+        Config config = null;
         try {
-            Config config = Config.create(filename);
+            config = Config.create(filename);
         } catch (FileNotFoundException | Config.InvalidConfig e) {
             Logging.logExceptionWithBacktrace(logger, e, Level.SEVERE);
+            System.exit(1);
+        }
+
+        if (cmd.hasOption('v'))
+            return;
+
+        try {
+            proxyLoop(config.proxyConfigs);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void proxyLoop(List<ProxyConfig> configs) throws IOException {
+
+        Selector selector = Selector.open();
+        List<ProxyMain> proxyMains = new ArrayList<>();
+
+        for (ProxyConfig cfg : configs) {
+            if (!cfg.proxyType().equals("socks"))
+                continue;
+
+            SocksMain m = new SocksMain(cfg);
+
+            proxyMains.add(m);
+            m.registerToSelector(selector);
+        }
+
+        while (true) {
+            if (selector.select() <= 0)
+                continue;
+
+            Set<SelectionKey> keys = selector.selectedKeys();
+            for (SelectionKey key : keys) {
+                if (key.isAcceptable()) {
+                    ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
+                    SocketChannel socketChannel = serverSocketChannel.accept();
+
+                    try {
+                        for (ProxyMain m : proxyMains) {
+                            if (m.hasServerSocketChannel(serverSocketChannel))
+                                m.start(socketChannel);
+                        }
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            keys.clear();
         }
     }
 }

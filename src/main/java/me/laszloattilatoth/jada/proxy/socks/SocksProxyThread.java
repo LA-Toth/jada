@@ -16,26 +16,34 @@
 
 package me.laszloattilatoth.jada.proxy.socks;
 
-import me.laszloattilatoth.jada.config.Config;
 import me.laszloattilatoth.jada.config.ProxyConfig;
-import me.laszloattilatoth.jada.proxy.ProxyMain;
 import me.laszloattilatoth.jada.proxy.ProxyThread;
 
+import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
-public class SocksMain extends ProxyMain {
+public class SocksProxyThread extends ProxyThread {
 
-    public SocksMain(ProxyConfig config) {
-        super(config);
-    }
-
-    public static void setup() {
-        Config.registerProxy("socks", Options.class);
+    public SocksProxyThread(SocketChannel socketChannel, ProxyConfig config) {
+        super(socketChannel, config);
     }
 
     @Override
-    public void start(SocketChannel channel) {
-        ProxyThread t = new SocksProxyThread(channel, config);
-        t.start();
+    protected void runProxy() throws IOException {
+        socketChannel.configureBlocking(true);
+        int version = socketChannel.socket().getInputStream().read();
+        System.out.println(version);
+
+        SocksProxy p = null;
+        if (version == -1) {
+            return;
+        } else if (version == 4 || version == 5) {
+            p = SocksProxy.create(version, socketChannel, logger, getName(), threadId);
+        } else {
+        }
+
+        if (p != null) {
+            p.run();
+        }
     }
 }
