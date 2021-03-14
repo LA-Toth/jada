@@ -1,0 +1,13 @@
+proxies:
+  - name: 'SOCKS'
+    proxy: socks
+    address: localhost:1088
+    target: inband
+  - name: 'plug'
+    proxy: plug
+    address: 0.0.0.0:1090
+    target: localhost:80
+  - name: 'SOCKS2'
+    proxy: socks
+    address: localhost:1089
+    target: inband
