@@ -16,16 +16,13 @@
 
 package me.laszloattilatoth.jada.proxy.socks;
 
-import me.laszloattilatoth.jada.util.Logging;
+import me.laszloattilatoth.jada.proxy.plug.PlugProxy;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.Set;
 import java.util.logging.Logger;
 
 public abstract class SocksProxy {
@@ -58,55 +55,11 @@ public abstract class SocksProxy {
             return;
         }
         try {
-            proxyMain(serverSideSocket);
+            sendConnectionSuccessMsg();
+            new PlugProxy(socketChannel, serverSideSocket, logger).run();
         } finally {
             serverSideSocket.close();
         }
-    }
-
-    private void proxyMain(SocketChannel serverSideSocket) throws IOException {
-        sendConnectionSuccessMsg();
-
-        Selector selector = Selector.open();
-        serverSideSocket.configureBlocking(false);
-        socketChannel.configureBlocking(false);
-        serverSideSocket.register(selector, SelectionKey.OP_READ);
-        socketChannel.register(selector, SelectionKey.OP_READ);
-
-        boolean shouldTerminate = false;
-        while (!shouldTerminate) {
-            int num = selector.select();
-            if (num == 0) {
-                continue;
-            }
-
-            Set<SelectionKey> keys = selector.selectedKeys();
-            for (SelectionKey key : keys) {
-                if (key.isReadable()) {
-                    SocketChannel sc = (SocketChannel) key.channel();
-                    shouldTerminate = !proxyInputToOtherSide(sc, serverSideSocket);
-                }
-            }
-            keys.clear();
-        }
-    }
-
-    private boolean proxyInputToOtherSide(SocketChannel channel, SocketChannel serverSideSocketChannel) throws IOException {
-        boolean c2s = channel == socketChannel;
-        SocketChannel other = channel == socketChannel ? serverSideSocketChannel : socketChannel;
-        proxyBuffer.clear();
-        int length = channel.read(proxyBuffer);
-        if (length == 0) {
-            return true;
-        } else if (length == -1) {
-            return false;
-        }
-        logger.info(String.format("Copying data to other side; side='%s', length='%d'", c2s ? "client" : "server", length));
-        Logging.logBytes(logger, proxyBuffer.array(), proxyBuffer.position());
-        proxyBuffer.flip();
-        other.write(proxyBuffer);
-
-        return true;
     }
 
     public abstract void run() throws IOException;
