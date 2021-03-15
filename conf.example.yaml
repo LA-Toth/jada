@@ -6,7 +6,7 @@ proxies:
   - name: 'plug'
     proxy: plug
     address: 0.0.0.0:1090
-    target: localhost:80
+    target: localhost:8000
   - name: 'SOCKS2'
     proxy: socks
     address: localhost:1089

@@ -103,10 +103,12 @@ public class Main {
         List<ProxyMain> proxyMains = new ArrayList<>();
 
         for (ProxyConfig cfg : configs) {
-            if (!cfg.proxyType().equals("socks"))
-                continue;
-
-            SocksMain m = new SocksMain(cfg);
+            ProxyMain m = null;
+            switch(cfg.proxyType()) {
+                case "socks" -> m = new SocksMain(cfg);
+                case "plug" -> m = new PlugMain(cfg);
+                default -> throw new IOException();
+            }
 
             proxyMains.add(m);
             m.registerToSelector(selector);

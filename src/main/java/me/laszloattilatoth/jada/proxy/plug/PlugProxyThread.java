@@ -16,26 +16,22 @@
 
 package me.laszloattilatoth.jada.proxy.plug;
 
-import me.laszloattilatoth.jada.config.Config;
 import me.laszloattilatoth.jada.config.ProxyConfig;
-import me.laszloattilatoth.jada.config.ProxyOptions;
-import me.laszloattilatoth.jada.proxy.ProxyMain;
 import me.laszloattilatoth.jada.proxy.ProxyThread;
 
+import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
-public class PlugMain extends ProxyMain {
-    public PlugMain(ProxyConfig config) {
-        super(config);
-    }
+public class PlugProxyThread extends ProxyThread {
 
-    public static void setup() {
-        Config.registerProxy("plug", ProxyOptions.class);
+    public PlugProxyThread(SocketChannel socketChannel, ProxyConfig config) {
+        super(socketChannel, config);
     }
 
     @Override
-    public void start(SocketChannel channel) {
-        ProxyThread t = new PlugProxyThread(channel, config);
-        t.start();
+    protected void runProxy() throws IOException {
+        try (SocketChannel serverSideSocket = SocketChannel.open(config.target())) {
+            new PlugProxy(socketChannel, serverSideSocket, logger).run();
+        }
     }
 }
