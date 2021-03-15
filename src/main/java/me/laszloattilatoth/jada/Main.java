@@ -18,7 +18,7 @@ package me.laszloattilatoth.jada;
 
 import me.laszloattilatoth.jada.config.Config;
 import me.laszloattilatoth.jada.config.ProxyConfig;
-import me.laszloattilatoth.jada.proxy.ProxyMain;
+import me.laszloattilatoth.jada.proxy.core.ProxyMain;
 import me.laszloattilatoth.jada.proxy.plug.PlugMain;
 import me.laszloattilatoth.jada.proxy.socks.SocksMain;
 import me.laszloattilatoth.jada.util.Logging;

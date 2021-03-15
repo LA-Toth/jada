@@ -19,8 +19,8 @@ package me.laszloattilatoth.jada.proxy.plug;
 import me.laszloattilatoth.jada.config.Config;
 import me.laszloattilatoth.jada.config.ProxyConfig;
 import me.laszloattilatoth.jada.config.ProxyOptions;
-import me.laszloattilatoth.jada.proxy.ProxyMain;
-import me.laszloattilatoth.jada.proxy.ProxyThread;
+import me.laszloattilatoth.jada.proxy.core.ProxyMain;
+import me.laszloattilatoth.jada.proxy.core.ProxyThread;
 
 import java.nio.channels.SocketChannel;
 

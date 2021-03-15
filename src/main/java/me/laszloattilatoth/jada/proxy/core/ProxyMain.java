@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package me.laszloattilatoth.jada.proxy;
+package me.laszloattilatoth.jada.proxy.core;
 
 import me.laszloattilatoth.jada.config.ProxyConfig;
 
