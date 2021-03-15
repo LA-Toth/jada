@@ -38,7 +38,7 @@ public class ConfigLoader {
         Map<String, Object> globalOptions = (Map<String, Object>) globalOptsObj;
         if (globalOptions != null) {
             for (Map.Entry<String, Object> entry : globalOptions.entrySet()) {
-                if (!Config.supportedProxyies.containsKey(entry.getKey()))
+                if (!Config.registeredProxies.containsKey(entry.getKey()))
                     throw new Config.InvalidConfig();
             }
         }
@@ -65,7 +65,7 @@ public class ConfigLoader {
 
             ProxyOptions options = null;
             try {
-                options = Config.supportedProxyies.get(proxy.get("proxy")).getDeclaredConstructor().newInstance();
+                options = Config.registeredProxies.get(proxy.get("proxy")).options().getDeclaredConstructor().newInstance();
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new Config.InvalidConfig();
             }

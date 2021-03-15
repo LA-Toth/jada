@@ -1,5 +1,6 @@
 package me.laszloattilatoth.jada.config;
 
+import me.laszloattilatoth.jada.proxy.core.registration.Registration;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileInputStream;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Config {
-    static final Map<String, Class<? extends ProxyOptions>> supportedProxyies = new HashMap<>();
+    static final Map<String, Registration> registeredProxies = new HashMap<>();
     public final List<ProxyConfig> proxyConfigs = new ArrayList<>();
     private final String filename;
     Map<String, Object> config;
@@ -25,12 +26,16 @@ public class Config {
         return config;
     }
 
-    public static void registerProxy(String name, Class<? extends ProxyOptions> cls) {
-        supportedProxyies.put(name, cls);
+    public static void registerProxy(Registration registration) {
+        registeredProxies.put(registration.name(), registration);
     }
 
-    public static void registerProxy(String name) {
-        registerProxy(name, ProxyOptions.class);
+    public static Registration getProxyRegistration(String proxyType) {
+        return registeredProxies.get(proxyType);
+    }
+
+    public static boolean supportedProxy(String proxyType) {
+        return registeredProxies.containsKey(proxyType);
     }
 
     boolean hasOption(String path) {

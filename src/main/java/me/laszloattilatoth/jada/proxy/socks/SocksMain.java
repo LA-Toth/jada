@@ -16,10 +16,10 @@
 
 package me.laszloattilatoth.jada.proxy.socks;
 
-import me.laszloattilatoth.jada.config.Config;
 import me.laszloattilatoth.jada.config.ProxyConfig;
 import me.laszloattilatoth.jada.proxy.core.ProxyMain;
 import me.laszloattilatoth.jada.proxy.core.ProxyThread;
+import me.laszloattilatoth.jada.proxy.core.registration.Registrar;
 
 import java.nio.channels.SocketChannel;
 
@@ -30,7 +30,7 @@ public class SocksMain extends ProxyMain {
     }
 
     public static void setup() {
-        Config.registerProxy("socks", Options.class);
+        Registrar.registerProxy("socks", SocksMain.class, Options.class);
     }
 
     @Override

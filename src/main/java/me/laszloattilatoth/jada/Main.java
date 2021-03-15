@@ -19,6 +19,7 @@ package me.laszloattilatoth.jada;
 import me.laszloattilatoth.jada.config.Config;
 import me.laszloattilatoth.jada.config.ProxyConfig;
 import me.laszloattilatoth.jada.proxy.core.ProxyMain;
+import me.laszloattilatoth.jada.proxy.core.registration.Registrar;
 import me.laszloattilatoth.jada.proxy.plug.PlugMain;
 import me.laszloattilatoth.jada.proxy.socks.SocksMain;
 import me.laszloattilatoth.jada.util.Logging;
@@ -26,6 +27,7 @@ import org.apache.commons.cli.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -47,7 +49,7 @@ public class Main {
         String filename;
 
         options.addOption("c", "config", true, "Configuration file");
-        options.addOption("V", "validate", true, "Validate only");
+        options.addOption("V", "validate", false, "Validate only");
         options.addOption(Option.builder("h").longOpt("help").desc("Print help").build());
 
         CommandLineParser parser = new DefaultParser();
@@ -104,12 +106,12 @@ public class Main {
 
         for (ProxyConfig cfg : configs) {
             ProxyMain m = null;
-            switch(cfg.proxyType()) {
-                case "socks" -> m = new SocksMain(cfg);
-                case "plug" -> m = new PlugMain(cfg);
-                default -> throw new IOException();
+            try {
+                m = Registrar.getRegistration(cfg.proxyType()).main().getDeclaredConstructor(cfg.getClass()).newInstance(cfg);
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                e.printStackTrace();
+                return;
             }
-
             proxyMains.add(m);
             m.registerToSelector(selector);
         }
