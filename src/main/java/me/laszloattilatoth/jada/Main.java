@@ -89,7 +89,7 @@ public class Main {
             System.exit(1);
         }
 
-        if (cmd.hasOption('v'))
+        if (cmd.hasOption('V'))
             return;
 
         try {
