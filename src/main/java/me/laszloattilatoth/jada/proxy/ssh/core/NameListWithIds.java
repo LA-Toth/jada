@@ -16,6 +16,8 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.core;
 
+import me.laszloattilatoth.jada.util.Logging;
+
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,8 +83,7 @@ public class NameListWithIds {
     }
 
     public int getFirstMatchingId(NameListWithIds other) {
-        // TODO: provide logger from the current thread
-        //Util.sshLogger().log(Level.FINEST, () -> String.format("Find matching SSH name; this='%s', other='%s'", nameList, other.nameList));
+        Logging.logger().log(Level.FINEST, () -> String.format("Find matching SSH name; this='%s', other='%s'", nameList, other.nameList));
         for (int nameId : nameIdList) {
             for (int otherNameId : other.nameIdList) {
                 if (nameId == otherNameId)

@@ -22,6 +22,7 @@ import me.laszloattilatoth.jada.proxy.core.ProxyMain;
 import me.laszloattilatoth.jada.proxy.core.registration.Registrar;
 import me.laszloattilatoth.jada.proxy.plug.PlugMain;
 import me.laszloattilatoth.jada.proxy.socks.SocksMain;
+import me.laszloattilatoth.jada.proxy.ssh.SshMain;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.commons.cli.*;
 
@@ -80,6 +81,7 @@ public class Main {
 
         PlugMain.setup();
         SocksMain.setup();
+        SshMain.setup();
 
         Config config = null;
         try {

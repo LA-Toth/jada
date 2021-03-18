@@ -11,3 +11,11 @@ proxies:
     proxy: socks
     address: localhost:1089
     target: inband
+  - name: 'SshDirect'
+    proxy: ssh
+    address: localhost:2222
+    target: localhost:22
+  - name: 'SshInband'
+    proxy: ssh
+    address: localhost:2223
+    target: inband
