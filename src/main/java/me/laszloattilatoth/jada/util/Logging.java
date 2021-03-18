@@ -16,6 +16,8 @@
 
 package me.laszloattilatoth.jada.util;
 
+import me.laszloattilatoth.jada.proxy.core.ProxyThread;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,6 +26,12 @@ public class Logging {
 
     public static String threadName() {
         return Thread.currentThread().getName();
+    }
+
+    public static Logger logger() {
+        if (Thread.currentThread() instanceof ProxyThread proxyThread)
+            return proxyThread.logger();
+        return Logger.getGlobal();
     }
 
     public static void logBytes(Logger logger, byte[] bytes, int size) {
@@ -62,6 +70,10 @@ public class Logging {
         logBytes(logger, bytes, bytes.length);
     }
 
+    public static void logBytes(byte[] bytes) {
+        logBytes(logger(), bytes);
+    }
+
     public static void logThrowable(Logger logger, Throwable exc, Level level, boolean withBacktrace) {
         if (!logger.isLoggable(level))
             return;
@@ -98,4 +110,5 @@ public class Logging {
     public static void logException(Logger logger, Exception exc, Level level, boolean withBacktrace) {
         logThrowable(logger, exc, level, withBacktrace);
     }
+
 }

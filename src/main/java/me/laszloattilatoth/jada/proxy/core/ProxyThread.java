@@ -44,6 +44,10 @@ public abstract class ProxyThread extends Thread {
         return Logger.getLogger(getName());
     }
 
+    public Logger logger() {
+        return logger;
+    }
+
     @Override
     public void run() {
         try {
