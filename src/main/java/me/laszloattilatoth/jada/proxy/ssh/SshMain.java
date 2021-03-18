@@ -21,7 +21,6 @@ import me.laszloattilatoth.jada.config.ProxyOptions;
 import me.laszloattilatoth.jada.proxy.core.ProxyMain;
 import me.laszloattilatoth.jada.proxy.core.ProxyThread;
 import me.laszloattilatoth.jada.proxy.core.registration.Registrar;
-import me.laszloattilatoth.jada.proxy.plug.PlugProxyThread;
 
 import java.nio.channels.SocketChannel;
 
@@ -36,7 +35,7 @@ public class SshMain extends ProxyMain {
 
     @Override
     public void start(SocketChannel channel) {
-        ProxyThread t = new SshProxyThread(channel, config);
+        ProxyThread t = new SshProxyThread(channel, config, nextThreadId());
         t.start();
     }
 }

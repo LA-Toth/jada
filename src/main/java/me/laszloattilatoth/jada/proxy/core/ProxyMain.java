@@ -26,13 +26,19 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProxyMain {
+    private final AtomicInteger lastThreadId = new AtomicInteger();
     protected ProxyConfig config;
     protected Map<ServerSocketChannel, Boolean> socketChannelMap = new HashMap<>();
 
     public ProxyMain(ProxyConfig config) {
         this.config = config;
+    }
+
+    protected int nextThreadId() {
+        return lastThreadId.getAndIncrement();
     }
 
     public void registerToSelector(Selector selector) throws IOException {

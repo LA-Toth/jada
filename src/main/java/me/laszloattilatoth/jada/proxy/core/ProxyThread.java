@@ -21,21 +21,19 @@ import me.laszloattilatoth.jada.util.Logging;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public abstract class ProxyThread extends Thread {
-    private static final AtomicInteger previousThreadId = new AtomicInteger();
     protected final int threadId;
     protected SocketChannel socketChannel;
     protected ProxyConfig config;
     protected Logger logger;
 
-    public ProxyThread(SocketChannel socketChannel, ProxyConfig config) {
+    public ProxyThread(SocketChannel socketChannel, ProxyConfig config, int threadId) {
         this.socketChannel = socketChannel;
         this.config = config;
-        this.threadId = previousThreadId.incrementAndGet();
+        this.threadId = threadId;
         this.setName(String.format("%s:%d", config.name(), this.threadId));
         this.logger = createLogger();
     }

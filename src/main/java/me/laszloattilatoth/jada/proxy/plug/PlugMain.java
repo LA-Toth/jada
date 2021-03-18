@@ -35,7 +35,7 @@ public class PlugMain extends ProxyMain {
 
     @Override
     public void start(SocketChannel channel) {
-        ProxyThread t = new PlugProxyThread(channel, config);
+        ProxyThread t = new PlugProxyThread(channel, config, nextThreadId());
         t.start();
     }
 }

@@ -24,8 +24,8 @@ import java.nio.channels.SocketChannel;
 
 public class PlugProxyThread extends ProxyThread {
 
-    public PlugProxyThread(SocketChannel socketChannel, ProxyConfig config) {
-        super(socketChannel, config);
+    public PlugProxyThread(SocketChannel socketChannel, ProxyConfig config, int threadId) {
+        super(socketChannel, config, threadId);
     }
 
     @Override

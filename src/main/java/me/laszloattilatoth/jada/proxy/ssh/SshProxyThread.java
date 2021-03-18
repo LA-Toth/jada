@@ -30,8 +30,8 @@ import java.util.logging.Level;
 public class SshProxyThread extends ProxyThread {
     private final TransportLayer transportLayer;
 
-    public SshProxyThread(SocketChannel socketChannel, ProxyConfig config) {
-        super(socketChannel, config);
+    public SshProxyThread(SocketChannel socketChannel, ProxyConfig config, int threadId) {
+        super(socketChannel, config, threadId);
         this.transportLayer = new ClientSideTransportLayer(this, socketChannel);
     }
 
