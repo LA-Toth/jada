@@ -1,0 +1,125 @@
+# RFC 4250 4.7.  Service Names
+ssh-userauth
+ssh-connection
+
+# RFC 4250 4.8.  Authentication Method Names
+# RFC 4252 5.  Authentication Requests
+"publickey"             REQUIRED
+"password"              OPTIONAL
+"hostbased"             OPTIONAL
+"none"                  NOT RECOMMENDED
+
+# RFC 4250 4.9.1.  Connection Protocol Channel Types
+session
+x11
+forwarded-tcpip
+direct-tcpip
+
+# 4.9.2.  Connection Protocol Global Request Names
+tcpip-forward
+cancel-tcpip-forward
+
+# 4.9.3.  Connection Protocol Channel Request Names
+pty-req
+x11-req
+env
+shell
+exec
+subsystem
+window-change
+xon-xoff
+signal
+exit-status
+exit-signal
+
+# 4.9.4.  Initial Assignment of Signal Names
+ABRT
+ALRM
+FPE
+HUP
+ILL
+INT
+KILL
+PIPE
+QUIT
+SEGV
+TERM
+USR1
+USR2
+
+# 4.10.  Key Exchange Method Names
+diffie-hellman-group1-sha1
+diffie-hellman-group14-sha1
+
+# RFC 4250 4.11.1.  Encryption Algorithm Names
+# RFC 4253 6.3.  Encryption
+3des-cbc         REQUIRED          three-key 3DES in CBC mode
+blowfish-cbc     OPTIONAL          Blowfish in CBC mode
+twofish256-cbc   OPTIONAL          Twofish in CBC mode,
+                                 with a 256-bit key
+twofish-cbc      OPTIONAL          alias for "twofish256-cbc"
+                                 (this is being retained
+                                 for historical reasons)
+twofish192-cbc   OPTIONAL          Twofish with a 192-bit key
+twofish128-cbc   OPTIONAL          Twofish with a 128-bit key
+aes256-cbc       OPTIONAL          AES in CBC mode,
+                                 with a 256-bit key
+aes192-cbc       OPTIONAL          AES with a 192-bit key
+aes128-cbc       RECOMMENDED       AES with a 128-bit key
+serpent256-cbc   OPTIONAL          Serpent in CBC mode, with
+                                 a 256-bit key
+serpent192-cbc   OPTIONAL          Serpent with a 192-bit key
+serpent128-cbc   OPTIONAL          Serpent with a 128-bit key
+arcfour          OPTIONAL          the ARCFOUR stream cipher
+                                 with a 128-bit key
+idea-cbc         OPTIONAL          IDEA in CBC mode
+cast128-cbc      OPTIONAL          CAST-128 in CBC mode
+none             OPTIONAL          no encryption; NOT RECOMMENDED
+
+# RFC 4250 4.11.2.  MAC Algorithm Names
+# RFC 4253 6.4.  Data Integrity
+hmac-sha1    REQUIRED        HMAC-SHA1 (digest length = key
+                           length = 20)
+hmac-sha1-96 RECOMMENDED     first 96 bits of HMAC-SHA1 (digest
+                           length = 12, key length = 20)
+hmac-md5     OPTIONAL        HMAC-MD5 (digest length = key
+                           length = 16)
+hmac-md5-96  OPTIONAL        first 96 bits of HMAC-MD5 (digest
+                           length = 12, key length = 16)
+none         OPTIONAL        no MAC; NOT RECOMMENDED
+
+
+# 4.11.3.  Public Key Algorithm Names
+ssh-dss
+ssh-rsa
+pgp-sign-rsa
+pgp-sign-dss
+
+# 4.11.4 Compression Algorithm Names
+none
+zlib
+
+# RFC 4344 4.  Encryption Modes
+aes128-ctr       RECOMMENDED       AES (Rijndael) in SDCTR mode,
+                                   with 128-bit key
+aes192-ctr       RECOMMENDED       AES with 192-bit key
+aes256-ctr       RECOMMENDED       AES with 256-bit key
+3des-ctr         RECOMMENDED       Three-key 3DES in SDCTR mode
+blowfish-ctr     OPTIONAL          Blowfish in SDCTR mode
+twofish128-ctr   OPTIONAL          Twofish in SDCTR mode,
+                                   with 128-bit key
+twofish192-ctr   OPTIONAL          Twofish with 192-bit key
+twofish256-ctr   OPTIONAL          Twofish with 256-bit key
+serpent128-ctr   OPTIONAL          Serpent in SDCTR mode, with
+                                   128-bit key
+serpent192-ctr   OPTIONAL          Serpent with 192-bit key
+serpent256-ctr   OPTIONAL          Serpent with 256-bit key
+idea-ctr         OPTIONAL          IDEA in SDCTR mode
+cast128-ctr      OPTIONAL          CAST-128 in SDCTR mode,
+                                    with 128-bit key
+
+
+# RFC 8332 3.  New RSA Public Key Algorithms
+# (host key and publickey user auth)
+rsa-sha2-256        RECOMMENDED    sign    Raw RSA key
+rsa-sha2-512        OPTIONAL       sign    Raw RSA key
