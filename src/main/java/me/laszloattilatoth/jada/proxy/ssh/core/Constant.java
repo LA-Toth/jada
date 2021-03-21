@@ -23,7 +23,8 @@ public class Constant {
      */
     public static final int MINIMUM_MAX_PACKET_SIZE = 35000;
 
-    public static final byte[] SSH_VERSION_STRING_PREFIX = "SSH-".getBytes();
+    public static final String SSH_VERSION_PREFIX = "SSH-";
+    public static final byte[] SSH_VERSION_PREFIX_BYTES = SSH_VERSION_PREFIX.getBytes();
 
     /*
         RFC 2450  SSH Protocol Assigned Numbers

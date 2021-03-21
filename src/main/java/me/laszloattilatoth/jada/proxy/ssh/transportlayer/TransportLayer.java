@@ -17,6 +17,7 @@
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
+import me.laszloattilatoth.jada.proxy.ssh.core.Buffer;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.util.Logging;
@@ -40,6 +41,7 @@ public abstract class TransportLayer {
     public final Side side;
     protected final Logger logger;
     protected final SocketChannel socketChannel;
+    protected final ByteBuffer byteBuffer = ByteBuffer.allocate(1024 * 1024);
     private final WeakReference<SshProxyThread> proxy;
     private final int macLength = 0;
     private final PacketHandler[] packetHandlers = new PacketHandler[256];
@@ -98,50 +100,49 @@ public abstract class TransportLayer {
 
     private void readVersionString() throws TransportLayerException {
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(256);
 
-            readVersionStringToBuffer(buffer);
-            String versionString = new String(buffer.array());
+            String versionString = getVersionStringFromSocket();
 
             if (!versionString.startsWith("SSH-2.0")) {
-                logger.severe(String.format("Unsupported SSH protocol; verson_string='%s'", versionString));
+                logger.severe(String.format("Unsupported SSH protocol; version_string='%s'", versionString));
                 throw new TransportLayerException("Unsupported SSH protocol");
             }
 
             logger.info("Remote ID String: " + versionString);
         } catch (
-                IOException e) {
+                IOException | Buffer.BufferEndReachedException e) {
             Logging.logExceptionWithBacktrace(logger, e, Level.SEVERE);
         }
     }
 
-    private void readVersionStringToBuffer(ByteBuffer byteBuffer) throws IOException {
+    private String getVersionStringFromSocket() throws IOException, Buffer.BufferEndReachedException {
+        Packet pkt = new Packet();
         int readBytes;
+        String line = null;
         while (true) {
+            byteBuffer.rewind();
             readBytes = socketChannel.read(byteBuffer);
+            pkt.appendByteBuffer(byteBuffer);
 
-            if (readBytes < Constant.SSH_VERSION_STRING_PREFIX.length + 3) continue;
+            if (readBytes < 0)
+                return "";
 
-            boolean match = true;
-            byte[] buffer = byteBuffer.array();
-            for (int idx = 0; idx < Constant.SSH_VERSION_STRING_PREFIX.length; ++idx) {
-                if (buffer[idx] != Constant.SSH_VERSION_STRING_PREFIX[idx]) {
-                    match = false;
-                    break;
-                }
-            }
-            if (!match)
+            line = pkt.getLine();
+            if (line == null)
                 continue;
+            if (line.length() < Constant.SSH_VERSION_PREFIX.length() + 3) continue;
 
-            break;
+            if (line.startsWith(Constant.SSH_VERSION_PREFIX))
+                break;
         }
+        return line != null ? line : "";
     }
 
     private void processMsgIgnore(Packet packet) {
     }
 
     private void processMsgUnimplemented(Packet packet) {
-        byte packetType = packet.getType();
+        byte packetType = packet.packetType();
         logger.info(() -> String.format("Processing unimplemented packet; type='%d', hex_type='%x'",
                 packetType, packetType));
     }

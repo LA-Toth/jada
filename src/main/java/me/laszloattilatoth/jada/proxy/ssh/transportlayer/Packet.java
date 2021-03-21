@@ -16,14 +16,70 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
-import java.nio.ByteBuffer;
+import me.laszloattilatoth.jada.proxy.ssh.core.Buffer;
+import me.laszloattilatoth.jada.proxy.ssh.helpers.NameListHelper;
+import me.laszloattilatoth.jada.util.Logging;
+
+import java.util.ArrayList;
+import java.util.logging.Logger;
 
 /**
  * Representing an SSH packet with ByteBuffer.
  */
-public record Packet(ByteBuffer buffer) {
+public class Packet extends Buffer {
 
-    public byte getType() {
-        return buffer.get(0);
+    public Packet() {
+        super();
+    }
+
+    public Packet(byte[] bytes) {
+        super(bytes);
+    }
+
+    public byte packetType() {
+        return getType();
+    }
+
+    public void dump() {
+        Logger logger = Logging.logger();
+        logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
+                getType(), getType(), size));
+        Logging.logBytes(logger, this.buffer, this.bufferEnd);
+    }
+
+    public ArrayList<String> getNameList() throws BufferEndReachedException {
+        int length = getUint32();
+        checkPosition(length);
+
+        ArrayList<String> result = NameListHelper.splitNameList(buffer, position, length);
+        position += length;
+
+        return result;
+    }
+
+    public int[] getNameIdList() throws BufferEndReachedException {
+        return NameListHelper.getIdListFromNameArrayList(getNameList());
+    }
+
+    public String getLine() {
+        if (limitReached())
+            return null;
+        int pos = position;
+
+        boolean found = false;
+        for (; pos < bufferEnd; ++pos) {
+            if (buffer[pos] == '\r' || buffer[pos] == '\n') {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            return null;
+
+        String result = new String(buffer, position, pos - position);
+
+        pos += (pos != position && buffer[pos] == '\r' && buffer[pos + 1] == '\n') ? 2 : 1;
+        position = pos;
+        return result;
     }
 }
