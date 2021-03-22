@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 /**
  * Representing an SSH packet with ByteBuffer.
  */
-public class Packet extends Buffer {
+public class Packet extends Buffer<Packet> {
 
     public Packet() {
         super();
@@ -43,8 +43,8 @@ public class Packet extends Buffer {
     public void dump() {
         Logger logger = Logging.logger();
         logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
-                getType(), getType(), size));
-        Logging.logBytes(logger, this.buffer, this.bufferEnd);
+                getType(), getType(), limit));
+        Logging.logBytes(logger, this.buffer, this.limit);
     }
 
     public ArrayList<String> getNameList() throws BufferEndReachedException {
@@ -67,7 +67,7 @@ public class Packet extends Buffer {
         int pos = position;
 
         boolean found = false;
-        for (; pos < bufferEnd; ++pos) {
+        for (; pos < limit; ++pos) {
             if (buffer[pos] == '\r' || buffer[pos] == '\n') {
                 found = true;
                 break;

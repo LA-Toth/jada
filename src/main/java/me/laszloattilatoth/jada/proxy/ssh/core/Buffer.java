@@ -12,7 +12,7 @@ import java.util.logging.Logger;
  * <p>
  * SSH has its own types like string.
  */
-public class Buffer {
+public class Buffer<T extends Buffer<T>> {
     public static final int MAX_SIZE = 0x8000000; // as in OpenSSH buffer
     public static final int DEFAULT_INIT_SIZE = 256;
     public static final int DEFAULT_INC_SIZE = 256;
@@ -20,14 +20,12 @@ public class Buffer {
     protected final int maxSize;
     protected byte[] buffer;
     protected int position = 0;
-    protected int bufferEnd;
-    protected int size;   // size of valid data (buffer may be larger)
+    protected int limit;   // size of valid data (buffer may be larger)
 
     public Buffer(byte[] bytes) {
         this.buffer = bytes;
         this.maxSize = this.buffer.length;
-        this.size = this.buffer.length;
-        this.bufferEnd = this.buffer.length;
+        this.limit = this.buffer.length;
         this.incSize = DEFAULT_INC_SIZE;
     }
 
@@ -39,8 +37,7 @@ public class Buffer {
         this.buffer = new byte[allocationSize];
         this.incSize = incSize;
         this.maxSize = maxSize;
-        this.size = 0;
-        this.bufferEnd = 0;
+        this.limit = 0;
     }
 
     public final int mark() {
@@ -48,32 +45,30 @@ public class Buffer {
     }
 
     public final int limit() {
-        return bufferEnd;
+        return limit;
     }
 
     public final int capacity() {
         return buffer.length;
     }
 
-    public byte getType() {
-        return buffer[0];
-    }
-
-    public int size() {
-        return size;
+    public int position() {
+        return position;
     }
 
     public boolean limitReached() {
         return position == limit();
     }
 
-    public void appendByteBuffer(ByteBuffer byteBuffer) throws BufferEndReachedException {
+    @SuppressWarnings("unchecked")
+    public T appendByteBuffer(ByteBuffer byteBuffer) throws BufferEndReachedException {
         int prevPos = position;
         try {
             putBytes(byteBuffer.array(), 0, byteBuffer.position());
         } finally {
             position = prevPos;
         }
+        return (T) this;
     }
 
     protected void checkPosition(int requiredLength) throws BufferEndReachedException {
@@ -84,15 +79,15 @@ public class Buffer {
     }
 
     protected void preserve(int requiredLength) throws BufferEndReachedException {
-        if (requiredLength > maxSize || maxSize - requiredLength < size - position) {
+        if (requiredLength > maxSize || maxSize - requiredLength < limit - position) {
             Logging.logger().severe(String.format("Unable to allocate required bytes into packet; required='%d'", requiredLength));
             throw new BufferEndReachedException("Unable to allocate bytes in packet");
         }
 
-        if (size + requiredLength < buffer.length)
+        if (limit + requiredLength < buffer.length)
             return;
 
-        int newSize = ((size + requiredLength + incSize - 1) / incSize) * incSize;
+        int newSize = ((limit + requiredLength + incSize - 1) / incSize) * incSize;
         byte[] newBuffer = new byte[newSize];
 
         System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
@@ -104,21 +99,21 @@ public class Buffer {
     }
 
     public byte[] arrayCopy() {
-        byte[] copy = new byte[size];
-        System.arraycopy(buffer, 0, copy, 0, size);
+        byte[] copy = new byte[limit];
+        System.arraycopy(buffer, 0, copy, 0, limit);
         return copy;
     }
 
     public void dump() {
-        Logging.logBytes(Logging.logger(), buffer, bufferEnd);
-    }
-
-    public int getPosition() {
-        return position;
+        Logging.logBytes(Logging.logger(), buffer, limit);
     }
 
     public void resetPosition() {
         position = 0;
+    }
+
+    public byte getType() {
+        return buffer[0];
     }
 
     public int getByte() throws BufferEndReachedException {
@@ -198,55 +193,65 @@ public class Buffer {
         return b;
     }
 
-    public void resetType(byte packetType) {
+    @SuppressWarnings("unchecked")
+    public T resetType(byte packetType) {
         resetPosition();
         buffer[0] = packetType;
+        return (T) this;
     }
 
     private void putByteUnchecked(byte b) {
         buffer[position++] = b;
-        size++;
-        bufferEnd = position;
+        limit++;
     }
 
-    public void putByte(int b) throws BufferEndReachedException {
+    @SuppressWarnings("unchecked")
+    public T putByte(int b) throws BufferEndReachedException {
         preserve(1);
         putByteUnchecked((byte) b);
+        return (T) this;
     }
 
-    public void putBoolean(boolean b) throws BufferEndReachedException {
-        putByte(b ? 1 : 0);
+    public T putBoolean(boolean b) throws BufferEndReachedException {
+        return putByte(b ? 1 : 0);
     }
 
-    public void putBytes(byte[] b) throws BufferEndReachedException {
+    @SuppressWarnings("unchecked")
+    public T putBytes(byte[] b) throws BufferEndReachedException {
         preserve(b.length);
         System.arraycopy(b, 0, buffer, position, b.length);
         position += b.length;
-        size += b.length;
-        bufferEnd = position;
+        limit += b.length;
+        return (T) this;
     }
 
-    public void putBytes(byte[] b, int offset, int count) throws BufferEndReachedException {
+    @SuppressWarnings("unchecked")
+
+    public T putBytes(byte[] b, int offset, int count) throws BufferEndReachedException {
         preserve(count);
         System.arraycopy(b, offset, buffer, position, count);
         position += count;
-        size += count;
-        bufferEnd = position;
+        limit += count;
+        return (T) this;
     }
 
-    public void putByteBuffer(ByteBuffer byteBuffer) throws BufferEndReachedException {
-        putBytes(byteBuffer.array(), 0, byteBuffer.position());
+    public T putByteBuffer(ByteBuffer byteBuffer) throws BufferEndReachedException {
+        return putBytes(byteBuffer.array(), 0, byteBuffer.position());
     }
 
-    public void putUint32(long l) throws BufferEndReachedException {
+    @SuppressWarnings("unchecked")
+    public T putUint32(long l) throws BufferEndReachedException {
         preserve(4);
         putByteUnchecked((byte) (l >> 24));
         putByteUnchecked((byte) (l >> 16));
         putByteUnchecked((byte) (l >> 8));
         putByteUnchecked((byte) l);
+        return (T) this;
     }
 
-    public void putUint64(long l) throws BufferEndReachedException {
+    @SuppressWarnings("unchecked")
+
+    public T putUint64(long l) throws BufferEndReachedException {
         preserve(8);
         putByteUnchecked((byte) (l >> 56));
         putByteUnchecked((byte) (l >> 48));
@@ -256,13 +261,16 @@ public class Buffer {
         putByteUnchecked((byte) (l >> 16));
         putByteUnchecked((byte) (l >> 8));
         putByteUnchecked((byte) l);
+        return (T) this;
     }
 
-    public void putString(String s) throws BufferEndReachedException {
+    @SuppressWarnings("unchecked")
+    public T putString(String s) throws BufferEndReachedException {
         byte[] bytes = s.getBytes();
         preserve(4 + bytes.length);
         putUint32(bytes.length);
         putBytes(bytes);
+        return (T) this;
     }
 
     public static final class BufferEndReachedException extends Exception {

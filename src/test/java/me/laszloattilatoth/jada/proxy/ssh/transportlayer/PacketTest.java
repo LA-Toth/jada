@@ -5,8 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PacketTest {
 
@@ -28,5 +27,6 @@ public class PacketTest {
             fail();
         }
         assertEquals("last line", packet.getLine());
+        assertTrue(packet.limitReached());
     }
 }
