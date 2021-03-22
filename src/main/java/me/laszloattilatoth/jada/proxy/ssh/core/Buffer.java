@@ -61,6 +61,13 @@ public class Buffer<T extends Buffer<T>> {
     }
 
     @SuppressWarnings("unchecked")
+    public T flip() {
+        limit = position;
+        position = 0;
+        return (T) this;
+    }
+
+    @SuppressWarnings("unchecked")
     public T appendByteBuffer(ByteBuffer byteBuffer) throws BufferEndReachedException {
         int prevPos = position;
         try {
