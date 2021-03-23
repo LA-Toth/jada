@@ -230,7 +230,8 @@ public class Buffer<T extends Buffer<T>> {
 
     private void putByteUnchecked(byte b) {
         buffer[position++] = b;
-        limit++;
+        if (limit < position)
+            limit++;
     }
 
     @SuppressWarnings("unchecked")
@@ -249,7 +250,8 @@ public class Buffer<T extends Buffer<T>> {
         preserve(b.length);
         System.arraycopy(b, 0, buffer, position, b.length);
         position += b.length;
-        limit += b.length;
+        if (limit < position)
+            limit = position;
         return (T) this;
     }
 

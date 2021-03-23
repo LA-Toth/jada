@@ -3,6 +3,9 @@ package me.laszloattilatoth.jada.proxy.ssh.core;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,9 +22,15 @@ public class BufferTest {
         assertEquals(expectedCap, buffer.capacity(), "capacity differs");
     }
 
+    void assertCantWriteAfterMaxSize(int typeSize, Executable ex) {
+        buffer.fillToMaxSize();
+        buffer.changeAbsolutePosition(TestBuffer.TEST_MAX_SIZE - (typeSize - 1));
+        assertThrows(Buffer.BufferEndReachedException.class, ex, "Should not write after maxSize reached");
+    }
+
     @BeforeEach
     public void beforeEach() {
-        buffer = new TestBuffer();
+        buffer = TestBuffer.createAlmostDefaultBuffer();
     }
 
     @Test
@@ -69,8 +78,11 @@ public class BufferTest {
     private static class TestBuffer extends Buffer<TestBuffer> {
         static final int ALLOC_SIZE = 4;
         static final int INC_SIZE = 8;
+        static final int TEST_MAX_SIZE = 1024;
 
+        boolean isPutByteCalled = false;
         boolean isResetPositionCalled = false;
+        int storedByte = 4;
 
         TestBuffer() {
             super();
@@ -80,16 +92,44 @@ public class BufferTest {
             super(ALLOC_SIZE, INC_SIZE, maxSize);
         }
 
+        TestBuffer(int allocationSize, int incSize, int maxSize) {
+            super(allocationSize, incSize, maxSize);
+        }
+
+        static TestBuffer createAlmostDefaultBuffer() {
+            return new TestBuffer(Buffer.DEFAULT_INIT_SIZE, Buffer.DEFAULT_INC_SIZE, TEST_MAX_SIZE);
+        }
+
         public TestBuffer resetPosition() {
             TestBuffer b = super.resetPosition();
             isResetPositionCalled = true;
             return b;
         }
 
-        public void changeRelativePosition(int amount) {
-            position += amount;
+        public TestBuffer putByte(int b) throws BufferEndReachedException {
+            TestBuffer res = super.putByte(b);
+            storedByte = b;
+            isPutByteCalled = true;
+            return res;
+        }
+
+        public void changeAbsolutePosition(int newPos) {
+            position = newPos;
             assert position >= 0;
             assert position <= limit;
+        }
+
+        public void changeRelativePosition(int amount) {
+            changeAbsolutePosition(position + amount);
+        }
+
+        void fillToMaxSize() {
+            try {
+                preserve(TEST_MAX_SIZE - position);
+                position = limit = TEST_MAX_SIZE;
+            } catch (Buffer.BufferEndReachedException e) {
+                fail();
+            }
         }
     }
 
@@ -229,6 +269,124 @@ public class BufferTest {
                 fail();
             }
             assertPosAndLimit(9, limit);
+        }
+    }
+
+    @Nested
+    public class PutMethodsTest {
+        static final int LIMIT = 100;
+
+        @BeforeEach
+        public void beforeEach() {
+            try {
+                for (int i = 0; i != LIMIT; ++i)
+                    buffer.putByte(0);
+                buffer.resetPosition();
+                buffer.putByte(1);
+            } catch (Buffer.BufferEndReachedException e) {
+                fail();
+            }
+            assertPosLimitAndCapacity(1, LIMIT, Buffer.DEFAULT_INIT_SIZE);
+        }
+
+        void assertPutMethod(int typeSize, PutMethodExecutable methodToTest, Validator successValidator) {
+            try {
+                methodToTest.execute();
+                assertPosLimitAndCapacity(1 + typeSize, LIMIT, Buffer.DEFAULT_INIT_SIZE);
+                successValidator.execute();
+            } catch (Buffer.BufferEndReachedException e) {
+                fail();
+            }
+            assertCantWriteAfterMaxSize(typeSize, methodToTest::execute);
+        }
+
+        void assertBytes(int startingPosition, byte[] expected) {
+            byte[] actual = buffer.array();
+            for (int i = 0; i != expected.length; ++i) {
+                int finalI = i;
+                assertEquals(expected[i], actual[startingPosition + i],
+                        () -> String.format("Array should contain %d at pos %d (expected pos %d)", expected[finalI], startingPosition + finalI, finalI));
+            }
+        }
+
+        @Test
+        public void testPutByte() {
+            assertPutMethod(1, () -> buffer.putByte(42), () -> assertEquals(42, buffer.array()[1]));
+        }
+
+        @Test
+        public void testPutBytesWithSingleByte() {
+            byte[] data = new byte[]{42};
+            assertPutMethod(1, () -> buffer.putBytes(data), () -> assertEquals(42, buffer.array()[1]));
+        }
+
+        @Test
+        public void testPutBytesWithMultipleBytes() {
+            byte[] data = new byte[]{42, 43, 55, 2};
+            assertPutMethod(data.length, () -> buffer.putBytes(data), () -> assertBytes(1, data));
+        }
+
+        @Test
+        public void testPutUint32() {
+            byte[] data = new byte[]{0x12, 0x13, 0x14, 0x15};
+            assertPutMethod(4, () -> buffer.putUint32(0x12131415), () -> assertBytes(1, data));
+        }
+
+        @Test
+        public void testPutUint64() {
+            byte[] data = new byte[]{0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
+            assertPutMethod(8, () -> buffer.putUint64(0x1112131415161718L), () -> assertBytes(1, data));
+        }
+
+        @Test
+        public void testPutBooleanCallsPutByte() {
+            try {
+                buffer.storedByte = 42;
+                buffer.isPutByteCalled = false;
+                buffer.putBoolean(true);
+                assertEquals(1, buffer.storedByte);
+                assertTrue(buffer.isPutByteCalled);
+
+                buffer.storedByte = 42;
+                buffer.isPutByteCalled = false;
+                buffer.putBoolean(false);
+                assertEquals(0, buffer.storedByte);
+                assertTrue(buffer.isPutByteCalled);
+            } catch (Buffer.BufferEndReachedException e) {
+                fail();
+            }
+        }
+
+        @Test
+        public void testPutEmptyString() {
+            byte[] data = new byte[]{0x00, 0x00, 0x00, 0x00};
+            assertPutMethod(4, () -> buffer.putString(""), () -> assertBytes(1, data));
+        }
+
+        @Test
+        public void testPutHelloString() {
+            byte[] data = new byte[]{0x00, 0x00, 0x00, 0x05, 'h', 'e', 'l', 'l', 'o'};
+            assertPutMethod(4 + 5, () -> buffer.putString("hello"), () -> assertBytes(1, data));
+        }
+
+        @Test
+        public void testPutUnicodeString() {
+            // unicodesnowmanforyou.com
+            String unicode = "Bőszájú körülíróművész. ☃:";
+            byte[] data1 = unicode.getBytes(StandardCharsets.UTF_8);
+            byte[] data = new byte[data1.length + 4];
+            data[0] = data[1] = data[2] = 0;
+            data[3] = (byte) data1.length; // smaller than 256 !
+            System.arraycopy(data1, 0, data, 4, data1.length);
+            assertPutMethod(data.length, () -> buffer.putString(unicode), () -> assertBytes(1, data));
+        }
+
+        interface PutMethodExecutable {
+            void execute() throws Buffer.BufferEndReachedException;
+        }
+
+        interface Validator {
+            void execute();
         }
     }
 }
