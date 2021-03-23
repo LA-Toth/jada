@@ -58,7 +58,7 @@ public class SocksV4Proxy extends SocksProxy {
             }
 
             address = InetAddress.getByName(buffer.toString());
-            logger.info(() -> String.format("Receiving SOCKS4a request; address='%s'", buffer.toString()));
+            logger.info(() -> String.format("Receiving SOCKS4a request; address='%s'", buffer));
         } else {
             address = InetAddress.getByAddress(addrBytes);
         }

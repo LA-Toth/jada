@@ -110,5 +110,4 @@ public class Logging {
     public static void logException(Logger logger, Exception exc, Level level, boolean withBacktrace) {
         logThrowable(logger, exc, level, withBacktrace);
     }
-
 }
