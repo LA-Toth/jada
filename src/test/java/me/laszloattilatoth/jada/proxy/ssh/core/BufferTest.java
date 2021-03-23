@@ -9,6 +9,16 @@ import static org.junit.jupiter.api.Assertions.*;
 public class BufferTest {
     TestBuffer buffer;
 
+    void assertPosAndLimit(int expectedPos, int expectedLimit) {
+        assertEquals(expectedPos, buffer.position(), "position differs");
+        assertEquals(expectedLimit, buffer.limit(), "limit differs");
+    }
+
+    void assertPosLimitAndCapacity(int expectedPos, int expectedLimit, int expectedCap) {
+        assertPosAndLimit(expectedPos, expectedLimit);
+        assertEquals(expectedCap, buffer.capacity(), "capacity differs");
+    }
+
     @BeforeEach
     public void beforeEach() {
         buffer = new TestBuffer();
@@ -26,19 +36,13 @@ public class BufferTest {
     public void testPutByte() {
         try {
             assertEquals(buffer, buffer.putByte(4));
-            assertEquals(1, buffer.position());
-            assertEquals(1, buffer.limit());
+            assertPosAndLimit(1, 1);
             buffer.putByte(0x11);
-            assertEquals(2, buffer.position());
-            assertEquals(2, buffer.limit());
+            assertPosAndLimit(2, 2);
             buffer.putBytes(new byte[254]);
-            assertEquals(256, buffer.position());
-            assertEquals(256, buffer.limit());
-            assertEquals(256, buffer.capacity());
+            assertPosLimitAndCapacity(256, 256, 256);
             buffer.putByte(100);
-            assertEquals(257, buffer.position());
-            assertEquals(257, buffer.limit());
-            assertEquals(512, buffer.capacity());
+            assertPosLimitAndCapacity(257, 257, 512);
         } catch (Buffer.BufferEndReachedException e) {
             fail();
         }
@@ -48,9 +52,7 @@ public class BufferTest {
     public void testBufferWithMaxSizeReallocedBuffer() {
         final int maxSize = 10;
         buffer = new TestBuffer(maxSize);
-        assertEquals(0, buffer.position());
-        assertEquals(0, buffer.limit());
-        assertEquals(TestBuffer.ALLOC_SIZE, buffer.capacity());
+        assertPosLimitAndCapacity(0, 0, TestBuffer.ALLOC_SIZE);
         assertEquals(TestBuffer.INC_SIZE, buffer.incSize());
         assertEquals(maxSize, buffer.maxSize());
 
@@ -60,10 +62,7 @@ public class BufferTest {
         } catch (Buffer.BufferEndReachedException e) {
             fail();
         }
-        assertEquals(9, buffer.position());
-        assertEquals(9, buffer.limit());
-        assertEquals(maxSize, buffer.capacity());
-
+        assertPosLimitAndCapacity(9, 9, maxSize);
         assertThrows(Buffer.BufferEndReachedException.class, () -> buffer.putBytes(new byte[2]));
     }
 
@@ -95,7 +94,7 @@ public class BufferTest {
     }
 
     @Nested
-    public class InitiallyEmptyBufferTests {
+    public class InitiallyNonEmptyBufferTests {
 
         @BeforeEach
         public void beforeEach() {
@@ -113,18 +112,17 @@ public class BufferTest {
             } catch (Buffer.BufferEndReachedException e) {
                 fail();
             }
+            assertPosLimitAndCapacity(10, 10, Buffer.DEFAULT_INIT_SIZE);
         }
 
         @Test
         public void testFlip() {
-            assertEquals(10, buffer.position());
-            assertEquals(10, buffer.limit());
+            assertPosAndLimit(10, 10);
             assertTrue(buffer.limitReached());
 
             // as position == limit, the limit is unchanged
             buffer.flip();
-            assertEquals(0, buffer.position());
-            assertEquals(10, buffer.limit());
+            assertPosAndLimit(0, 10);
             assertFalse(buffer.limitReached());
 
             try {
@@ -132,33 +130,27 @@ public class BufferTest {
             } catch (Buffer.BufferEndReachedException e) {
                 fail();
             }
-            assertEquals(1, buffer.position());
-            assertEquals(10, buffer.limit());
+            assertPosAndLimit(1, 10);
 
             // resets limit to the current position
             buffer.flip();
-            assertEquals(0, buffer.position());
-            assertEquals(1, buffer.limit());
+            assertPosAndLimit(0, 1);
             assertFalse(buffer.limitReached());
 
             // clear the buffer
             assertEquals(buffer, buffer.flip());
-            assertEquals(0, buffer.position());
-            assertEquals(0, buffer.limit());
+            assertPosAndLimit(0, 0);
             assertTrue(buffer.limitReached());
         }
 
         @Test
         public void testResetPosition() {
-            assertEquals(10, buffer.position());
-            assertEquals(10, buffer.limit());
+            assertPosAndLimit(10, 10);
             buffer.resetPosition();
-            assertEquals(0, buffer.position());
-            assertEquals(10, buffer.limit());
+            assertPosAndLimit(0, 10);
             // no change at second call
             buffer.resetPosition();
-            assertEquals(0, buffer.position());
-            assertEquals(10, buffer.limit());
+            assertPosAndLimit(0, 10);
         }
 
         @Test
@@ -170,15 +162,12 @@ public class BufferTest {
 
         @Test
         public void testClear() {
-            assertEquals(10, buffer.position());
-            assertEquals(10, buffer.limit());
+            assertPosAndLimit(10, 10);
             buffer.clear();
-            assertEquals(0, buffer.position());
-            assertEquals(0, buffer.limit());
+            assertPosAndLimit(0, 0);
             // no change at second call
             buffer.clear();
-            assertEquals(0, buffer.position());
-            assertEquals(0, buffer.limit());
+            assertPosAndLimit(0, 0);
         }
 
         @Test
@@ -228,15 +217,18 @@ public class BufferTest {
 
         @Test
         public void testGetUint64() {
+            int limit = buffer.limit();
             assertThrows(Buffer.BufferEndReachedException.class, () -> buffer.getUint64());
             buffer.changeRelativePosition(-7);
             assertThrows(Buffer.BufferEndReachedException.class, () -> buffer.getUint64());
-            buffer.changeRelativePosition(-1);
+            buffer.changeRelativePosition(-2);
+            assertPosAndLimit(1, limit);
             try {
-                assertEquals(0x1213232526272829L, buffer.getUint64());
+                assertEquals(0x1112132325262728L, buffer.getUint64());
             } catch (Buffer.BufferEndReachedException e) {
                 fail();
             }
+            assertPosAndLimit(9, limit);
         }
     }
 }
