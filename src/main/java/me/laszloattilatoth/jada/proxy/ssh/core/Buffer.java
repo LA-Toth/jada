@@ -24,7 +24,7 @@ public class Buffer<T extends Buffer<T>> {
 
     public Buffer(byte[] bytes) {
         this.buffer = bytes;
-        this.maxSize = this.buffer.length;
+        this.maxSize = MAX_SIZE;
         this.limit = this.buffer.length;
         this.incSize = DEFAULT_INC_SIZE;
     }
@@ -60,9 +60,34 @@ public class Buffer<T extends Buffer<T>> {
         return position == limit();
     }
 
+    public final int incSize() {
+        return incSize;
+    }
+
+    public final int maxSize() {
+        return maxSize;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T resetPosition() {
+        position = 0;
+        return (T) this;
+    }
+
+    public T rewind() {
+        return resetPosition();
+    }
+
     @SuppressWarnings("unchecked")
     public T flip() {
         limit = position;
+        position = 0;
+        return (T) this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public T clear() {
+        limit = 0;
         position = 0;
         return (T) this;
     }
@@ -79,14 +104,14 @@ public class Buffer<T extends Buffer<T>> {
     }
 
     protected void checkPosition(int requiredLength) throws BufferEndReachedException {
-        if (position + requiredLength > buffer.length) {
+        if (position + requiredLength > limit) {
             Logging.logger().severe(String.format("Unable to read required bytes from packet; required='%d'", requiredLength));
             throw new BufferEndReachedException("Unable to read required bytes from packet");
         }
     }
 
     protected void preserve(int requiredLength) throws BufferEndReachedException {
-        if (requiredLength > maxSize || maxSize - requiredLength < limit - position) {
+        if (requiredLength > maxSize || maxSize - requiredLength < position) {
             Logging.logger().severe(String.format("Unable to allocate required bytes into packet; required='%d'", requiredLength));
             throw new BufferEndReachedException("Unable to allocate bytes in packet");
         }
@@ -94,7 +119,7 @@ public class Buffer<T extends Buffer<T>> {
         if (limit + requiredLength < buffer.length)
             return;
 
-        int newSize = ((limit + requiredLength + incSize - 1) / incSize) * incSize;
+        int newSize = Math.min(maxSize, ((limit + requiredLength + incSize - 1) / incSize) * incSize);
         byte[] newBuffer = new byte[newSize];
 
         System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
@@ -113,10 +138,6 @@ public class Buffer<T extends Buffer<T>> {
 
     public void dump() {
         Logging.logBytes(Logging.logger(), buffer, limit);
-    }
-
-    public void resetPosition() {
-        position = 0;
     }
 
     public byte getType() {
@@ -233,7 +254,6 @@ public class Buffer<T extends Buffer<T>> {
     }
 
     @SuppressWarnings("unchecked")
-
     public T putBytes(byte[] b, int offset, int count) throws BufferEndReachedException {
         preserve(count);
         System.arraycopy(b, offset, buffer, position, count);
