@@ -23,6 +23,7 @@ import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.util.Logging;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -86,6 +87,7 @@ public abstract class TransportLayer {
     public void start() throws TransportLayerException {
         writeVersionString();
         readVersionString();
+        exchangeKeys();
     }
 
     private void writeVersionString() {
@@ -102,6 +104,8 @@ public abstract class TransportLayer {
         try {
 
             String versionString = getVersionStringFromSocket();
+            if (versionString == null)
+                throw new TransportLayerException("No protocol version string is received");
 
             if (!versionString.startsWith("SSH-2.0")) {
                 logger.severe(String.format("Unsupported SSH protocol; version_string='%s'", versionString));
@@ -115,27 +119,59 @@ public abstract class TransportLayer {
         }
     }
 
-    private String getVersionStringFromSocket() throws IOException, Buffer.BufferEndReachedException {
+    private String getVersionStringFromSocket() throws IOException, Buffer.BufferEndReachedException, TransportLayerException {
+        InputStream is = socketChannel.socket().getInputStream();
         Packet pkt = new Packet();
-        int readBytes;
+        int data;
+        boolean expectNL = false;
+        int nonBannerLineCount = 0;
         String line = null;
-        while (true) {
-            byteBuffer.rewind();
-            readBytes = socketChannel.read(byteBuffer);
-            pkt.appendByteBuffer(byteBuffer);
 
-            if (readBytes < 0)
-                return "";
-
-            line = pkt.getLine();
-            if (line == null)
+        for (; nonBannerLineCount < Constant.MAX_PRE_BANNER_LINES; ++nonBannerLineCount) {
+            pkt.rewind();
+            for (; ; ) {
+                if ((data = is.read()) < 0)
+                    return null;
+                if (data == '\r') {
+                    expectNL = true;
+                    continue;
+                } else if (data == '\n') {
+                    break;
+                } else if (data == '\0' || expectNL) {
+                    logger.severe("Invalid Protocol Version String");
+                    throw new TransportLayerException("Unable to read SSH protocol version string");
+                }
+                pkt.putByte(data);
+                if (pkt.limit() > Constant.MAX_BANNER_LENGTH) {
+                    logger.severe(String.format(
+                            "Too long Protocol Version String; truncated_length='%d', max='%d'",
+                            pkt.limit(), Constant.MAX_BANNER_LENGTH));
+                    throw new TransportLayerException("Unable to read SSH protocol version string");
+                }
+            }
+            if (pkt.limit() <= 4)
                 continue;
-            if (line.length() < Constant.SSH_VERSION_PREFIX.length() + 3) continue;
-
+            pkt.putByte('\n').flip();
+            line = pkt.getLine();
             if (line.startsWith(Constant.SSH_VERSION_PREFIX))
-                break;
+                return line;
         }
-        return line != null ? line : "";
+
+        logger.severe(String.format(
+                "Unable to read SSH protocol version string, too many previous lines; count='%s'", nonBannerLineCount));
+        throw new TransportLayerException("Unable to read SSH protocol version string");
+    }
+
+    private void exchangeKeys() throws TransportLayerException {
+        try {
+            //kex.sendInitialMsgKexInit();
+            //readAndHandlePacket();
+            throw new IOException("temp");
+        } catch (IOException e) {
+            logger.severe("Unable to read packet string;");
+            Logging.logException(logger, e, Level.INFO);
+            throw new TransportLayerException("Unable to read packet");
+        }
     }
 
     private void processMsgIgnore(Packet packet) {

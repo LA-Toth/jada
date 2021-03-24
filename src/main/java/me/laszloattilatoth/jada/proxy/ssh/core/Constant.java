@@ -23,6 +23,14 @@ public class Constant {
      */
     public static final int MINIMUM_MAX_PACKET_SIZE = 35000;
 
+    /**
+     * Maximum lines before receiving the banner line starting with SSH-...
+     *
+     * The value is the same as in OpenSSH.
+     */
+    public static final int MAX_PRE_BANNER_LINES = 1024;
+    public static final int MAX_BANNER_LENGTH = 8192;
+
     public static final String SSH_VERSION_PREFIX = "SSH-";
     public static final byte[] SSH_VERSION_PREFIX_BYTES = SSH_VERSION_PREFIX.getBytes();
 
