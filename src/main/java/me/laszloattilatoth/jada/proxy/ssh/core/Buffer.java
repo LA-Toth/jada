@@ -116,7 +116,7 @@ public class Buffer<T extends Buffer<T>> {
             throw new BufferEndReachedException("Unable to allocate bytes in packet");
         }
 
-        if (limit + requiredLength < buffer.length)
+        if (position + requiredLength <= buffer.length)
             return;
 
         int newSize = Math.min(maxSize, ((limit + requiredLength + incSize - 1) / incSize) * incSize);

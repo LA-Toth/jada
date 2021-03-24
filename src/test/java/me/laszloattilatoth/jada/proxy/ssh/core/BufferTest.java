@@ -84,16 +84,21 @@ public class BufferTest {
         boolean isResetPositionCalled = false;
         int storedByte = 4;
 
+        int initialSize;
+
         TestBuffer() {
             super();
+            initialSize = buffer.length;
         }
 
         TestBuffer(int maxSize) {
             super(ALLOC_SIZE, INC_SIZE, maxSize);
+            initialSize = buffer.length;
         }
 
         TestBuffer(int allocationSize, int incSize, int maxSize) {
             super(allocationSize, incSize, maxSize);
+            initialSize = buffer.length;
         }
 
         static TestBuffer createAlmostDefaultBuffer() {
@@ -127,6 +132,17 @@ public class BufferTest {
             try {
                 preserve(TEST_MAX_SIZE - position);
                 position = limit = TEST_MAX_SIZE;
+            } catch (Buffer.BufferEndReachedException e) {
+                fail();
+            }
+        }
+
+        void fillToFirstExpandAtNextByte() {
+            if (capacity() > initialSize)
+                return;
+            try {
+                preserve(initialSize - position);
+                position = limit = initialSize;
             } catch (Buffer.BufferEndReachedException e) {
                 fail();
             }
@@ -290,6 +306,7 @@ public class BufferTest {
         }
 
         void assertPutMethod(int typeSize, PutMethodExecutable methodToTest, Validator successValidator) {
+            // first test that the data can be added successfully at a non-zero position
             try {
                 methodToTest.execute();
                 assertPosLimitAndCapacity(1 + typeSize, LIMIT, Buffer.DEFAULT_INIT_SIZE);
@@ -297,6 +314,19 @@ public class BufferTest {
             } catch (Buffer.BufferEndReachedException e) {
                 fail();
             }
+
+            // then check that the buffer can be written beyond the initial size (not reaching max size)
+            assertEquals(Buffer.DEFAULT_INIT_SIZE, buffer.initialSize);
+            buffer.fillToFirstExpandAtNextByte();
+            assertPosLimitAndCapacity(Buffer.DEFAULT_INIT_SIZE, Buffer.DEFAULT_INIT_SIZE, Buffer.DEFAULT_INIT_SIZE);
+            buffer.changeRelativePosition(-(typeSize - 1));
+            try {
+                methodToTest.execute();
+            } catch (Buffer.BufferEndReachedException e) {
+                fail();
+            }
+            assertPosLimitAndCapacity(Buffer.DEFAULT_INIT_SIZE + 1, Buffer.DEFAULT_INIT_SIZE + 1, Buffer.DEFAULT_INIT_SIZE + Buffer.DEFAULT_INC_SIZE);
+
             assertCantWriteAfterMaxSize(typeSize, methodToTest::execute);
         }
 
