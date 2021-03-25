@@ -45,7 +45,7 @@ public class KexAlgos {
     }
 
     public static KexAlgo byNameWithId(NameWithId nameWithId) {
-        return byId(nameWithId.getNameId());
+        return byId(nameWithId.nameId());
     }
 
     private static void put(String name, KexAlgo.Digest digest) {

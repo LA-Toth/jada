@@ -54,7 +54,7 @@ public class KexInitPacket extends KexInitEntries {
         for (int i = 0; i != COOKIE_LEN; ++i)
             packet.putByte(0);  // FIXME: Security????
         for (int i = 0; i != ENTRY_MAX; ++i) {
-            packet.putString(entries[i].getNameList());
+            packet.putString(entries[i].nameList());
         }
         packet.putBoolean(false);
         packet.putUint32(0);   // reserved

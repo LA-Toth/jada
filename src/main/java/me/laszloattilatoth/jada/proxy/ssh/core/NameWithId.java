@@ -31,15 +31,19 @@ public class NameWithId {
         this.nameId = nameId;
     }
 
-    public String getName() {
+    public String name() {
         return name;
     }
 
-    public int getNameId() {
+    public int nameId() {
         return nameId;
     }
 
-    public boolean valid(boolean enableNone) {
+    public boolean isValid(boolean enableNone) {
         return this.nameId != Name.SSH_NAME_UNKNOWN && (enableNone || this.nameId != Name.SSH_NAME_NONE);
+    }
+
+    public boolean isValid() {
+        return this.isValid(false);
     }
 }

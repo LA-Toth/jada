@@ -50,7 +50,7 @@ public class Ciphers {
     }
 
     public static Cipher byNameWithId(NameWithId nameWithId) {
-        return byId(nameWithId.getNameId());
+        return byId(nameWithId.nameId());
     }
 
     private static void put(String name, long blockSize, long keyLen, long ivLen, long authLen, long flags) {

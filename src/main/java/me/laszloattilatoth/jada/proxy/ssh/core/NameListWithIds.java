@@ -62,23 +62,23 @@ public class NameListWithIds {
         return nameIdList.length;
     }
 
-    public String getOriginalNameList() {
+    public String originalNameList() {
         return originalNameList;
     }
 
-    public String getNameList() {
+    public String nameList() {
         return nameList;
     }
 
-    public String[] getRemovedNameList() {
+    public String[] removedNameList() {
         return removedNameList;
     }
 
-    public int[] getNameIdList() {
+    public int[] nameIdList() {
         return nameIdList;
     }
 
-    public int getFirstId() {
+    public int firstId() {
         return nameIdList[0];
     }
 
@@ -98,8 +98,8 @@ public class NameListWithIds {
         return new NameWithId(getFirstMatchingId(other));
     }
 
-    public NameWithId getFirstNameWithId() {
-        return new NameWithId(getFirstId());
+    public NameWithId firstNameWithId() {
+        return new NameWithId(firstId());
     }
 
     public void log(Logger logger, String nameListName) {
@@ -112,7 +112,7 @@ public class NameListWithIds {
         ));
     }
 
-    public boolean firstEqual(NameListWithIds other) {
-        return getFirstId() == other.getFirstId();
+    public boolean isFirstNameEquals(NameListWithIds other) {
+        return firstId() == other.firstId();
     }
 }

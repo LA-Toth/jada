@@ -45,7 +45,7 @@ public class KeyAlgos {
     }
 
     public static KeyAlgo byNameWithId(NameWithId nameWithId) {
-        return byId(nameWithId.getNameId());
+        return byId(nameWithId.nameId());
     }
 
     private static void put(String name) {

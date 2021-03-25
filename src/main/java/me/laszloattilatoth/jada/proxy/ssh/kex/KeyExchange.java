@@ -137,7 +137,7 @@ public class KeyExchange extends WithTransportLayer {
             chooseCompAlg(newkeys, client, server, compIdx);
 
             logger.fine(() -> String.format("KEX algo match; kex='%s', cipher='%s', MAC='%s', compression='%s', direction='%s', side='%s'",
-                    kexName.getName(),
+                    kexName.name(),
                     newkeys.enc.name(),
                     newkeys.mac.name(),
                     "none", // FIXME
@@ -178,7 +178,7 @@ public class KeyExchange extends WithTransportLayer {
         KeyAlgo keyAlgo = KeyAlgos.byNameWithId(this.kexName);
         if (keyAlgo == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated host key algorithm is not supported");
-            throw new KexException(String.format("Negotiated host key algorithm is not supported; algo='%s'", hostKeyAlg.getName()));
+            throw new KexException(String.format("Negotiated host key algorithm is not supported; algo='%s'", hostKeyAlg.name()));
         }
     }
 
@@ -187,7 +187,7 @@ public class KeyExchange extends WithTransportLayer {
         KexAlgo kexAlgo = KexAlgos.byNameWithId(this.kexName);
         if (kexAlgo == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated KEX algorithm is not supported");
-            throw new KexException(String.format("v; algo='%s'", kexName.getName()));
+            throw new KexException(String.format("v; algo='%s'", kexName.name()));
         }
     }
 
@@ -200,8 +200,8 @@ public class KeyExchange extends WithTransportLayer {
         if (nameId == Name.SSH_NAME_UNKNOWN) {
             logger.severe(() -> String.format("KEX algo list mismatch; error='%s', own='%s', peer='%s', side='%s'",
                     exceptionString,
-                    isClientSide() ? server.getNameList() : client.getNameList(),
-                    isServerSide() ? server.getNameList() : client.getNameList(),
+                    isClientSide() ? server.nameList() : client.nameList(),
+                    isServerSide() ? server.nameList() : client.nameList(),
                     sideStr()
             ));
             throw new KexException(exceptionString);
