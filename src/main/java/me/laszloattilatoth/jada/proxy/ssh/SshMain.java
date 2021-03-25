@@ -17,7 +17,6 @@
 package me.laszloattilatoth.jada.proxy.ssh;
 
 import me.laszloattilatoth.jada.config.ProxyConfig;
-import me.laszloattilatoth.jada.config.ProxyOptions;
 import me.laszloattilatoth.jada.proxy.core.ProxyMain;
 import me.laszloattilatoth.jada.proxy.core.ProxyThread;
 import me.laszloattilatoth.jada.proxy.core.registration.Registrar;
@@ -30,7 +29,7 @@ public class SshMain extends ProxyMain {
     }
 
     public static void setup() {
-        Registrar.registerProxy("ssh", SshMain.class, ProxyOptions.class);
+        Registrar.registerProxy("ssh", SshMain.class, Options.class);
     }
 
     @Override

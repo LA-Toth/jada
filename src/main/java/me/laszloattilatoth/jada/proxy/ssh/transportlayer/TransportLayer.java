@@ -20,15 +20,16 @@ import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
 import me.laszloattilatoth.jada.proxy.ssh.core.Buffer;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
+import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.util.Logging;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,18 +43,21 @@ public abstract class TransportLayer {
     public final Side side;
     protected final Logger logger;
     protected final SocketChannel socketChannel;
-    protected final ByteBuffer byteBuffer = ByteBuffer.allocate(1024 * 1024);
     private final WeakReference<SshProxyThread> proxy;
+    private final KeyExchange kex;
     private final int macLength = 0;
     private final PacketHandler[] packetHandlers = new PacketHandler[256];
     private final String[] packetTypeNames = new String[256];
     private final List<Packet> replayPackets = new ArrayList<>();
+    protected DataInputStream dataInputStream = null;
+    protected DataOutputStream dataOutputStream = null;
 
     public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
         this.proxy = new WeakReference<>(proxy);
         this.logger = proxy.logger();
         this.socketChannel = socketChannel;
         this.side = side;
+        this.kex = new KeyExchange(this);
         this.setupHandlers();
     }
 
@@ -65,6 +69,7 @@ public abstract class TransportLayer {
         registerHandler(Constant.SSH_MSG_IGNORE, this::processMsgIgnore, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_IGNORE]);
         registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_UNIMPLEMENTED]);
         registerHandler(Constant.SSH_MSG_DEBUG, this::processMsgIgnore, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_DEBUG]);
+        registerHandler(Constant.SSH_MSG_KEXINIT, kex::processMsgKexInit, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_KEXINIT]);
     }
 
     public void registerHandler(int packetType, PacketHandler handler, String packetTypeName) {
@@ -80,6 +85,10 @@ public abstract class TransportLayer {
         return logger;
     }
 
+    public final SshProxyThread proxy() {
+        return Objects.requireNonNull(proxy).get();
+    }
+
     /**
      * Starts the layer, aka. send / receive SSH-2.0... string
      * and do the first KEX
@@ -87,6 +96,7 @@ public abstract class TransportLayer {
     public void start() throws TransportLayerException {
         writeVersionString();
         readVersionString();
+        switchToDataStreams();
         exchangeKeys();
     }
 
@@ -162,16 +172,80 @@ public abstract class TransportLayer {
         throw new TransportLayerException("Unable to read SSH protocol version string");
     }
 
+    private void switchToDataStreams() throws TransportLayerException {
+        try {
+            dataInputStream = new DataInputStream(new BufferedInputStream(socketChannel.socket().getInputStream()));
+            dataOutputStream = new DataOutputStream(new BufferedOutputStream(socketChannel.socket().getOutputStream()));
+        } catch (IOException e) {
+            throw new TransportLayerException(e.getMessage());
+        }
+    }
+
     private void exchangeKeys() throws TransportLayerException {
         try {
-            //kex.sendInitialMsgKexInit();
-            //readAndHandlePacket();
+            kex.sendInitialMsgKexInit();
+            readAndHandlePacket();
             throw new IOException("temp");
         } catch (IOException e) {
             logger.severe("Unable to read packet string;");
             Logging.logException(logger, e, Level.INFO);
             throw new TransportLayerException("Unable to read packet");
         }
+    }
+
+    public void readAndHandlePacket() throws IOException, TransportLayerException {
+        Packet packet = readPacket();
+        packet.dump();
+        byte packetType = packet.getType();
+        logger.info(() -> String.format("Processing packet; type='%d', hex_type='%x', type_name='%s', length='%d'",
+                packetType, packetType, packetTypeNames[packetType], packet.limit()));
+
+        if (kex.getState() == KeyExchange.State.WAIT_FOR_OTHER_KEXINIT && packetType != Constant.SSH_MSG_KEXINIT)
+            storePacket(packet);
+        else
+            packetHandlers[packetType].handle(packet);
+    }
+
+    /**
+     * Read packet as RFC 4253, 6.  Binary Packet Protocol
+     */
+    private Packet readPacket() throws IOException {
+        logger.info("Reading next packet");
+        int packetLength = dataInputStream.readInt();
+        byte paddingLength = dataInputStream.readByte();
+        logger.info(() -> String.format("Read packet header; length='%d', hex_length='0x%x', padding_length='%d'",
+                packetLength, packetLength, paddingLength));
+
+        byte[] data = dataInputStream.readNBytes(packetLength - paddingLength - 1);
+        logger.fine(() -> "Read packet data;");
+        if (paddingLength > 0)
+            dataInputStream.readNBytes(paddingLength);
+        logger.fine(() -> "Read packet padding;");
+
+        if (macLength > 0)
+            dataInputStream.readNBytes(macLength);
+
+        return new Packet(data);
+    }
+
+    /**
+     * Write packet as RFC 4253, 6.  Binary Packet Protocol
+     */
+    public void writePacket(Packet packet) throws IOException {
+        logger.info("Writing packet");
+        packet.dump();
+        int payloadSize = packet.limit();
+        int withHeaders = payloadSize + 1 + 4;
+        int paddingLength = (withHeaders + 7) / 8 * 8 - withHeaders;
+
+        dataOutputStream.writeInt(payloadSize + paddingLength + 1);
+        dataOutputStream.writeByte(paddingLength);
+        dataOutputStream.write(packet.array(), 0, payloadSize);
+        // FIXME: secure padding
+        for (int i = 0; i != paddingLength; ++i)
+            dataOutputStream.writeByte(0);
+        // FIXME: mac
+        dataOutputStream.flush();
     }
 
     private void processMsgIgnore(Packet packet) {

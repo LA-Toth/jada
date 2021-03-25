@@ -25,7 +25,7 @@ public class Constant {
 
     /**
      * Maximum lines before receiving the banner line starting with SSH-...
-     *
+     * <p>
      * The value is the same as in OpenSSH.
      */
     public static final int MAX_PRE_BANNER_LINES = 1024;

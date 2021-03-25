@@ -35,6 +35,10 @@ public class SshProxyThread extends ProxyThread {
         this.transportLayer = new ClientSideTransportLayer(this, socketChannel);
     }
 
+    public final Options options() {
+        return (Options) config.options();
+    }
+
     @Override
     protected void runProxy() throws IOException {
         try {
