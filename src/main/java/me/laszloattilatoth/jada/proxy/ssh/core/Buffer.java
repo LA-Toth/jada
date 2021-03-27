@@ -4,8 +4,6 @@ import me.laszloattilatoth.jada.util.Logging;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Represents a byte buffer with put/get methods of basic and SSH types.
@@ -169,34 +167,16 @@ public class Buffer<T extends Buffer<T>> {
 
     public int getUint32() throws BufferEndReachedException {
         checkPosition(4);
-        logBytes(4);
         return ((getByteUnchecked() << 24) + (getByteUnchecked() << 16) + (getByteUnchecked() << 8) + getByteUnchecked());
-    }
-
-    protected void logBytes(int length) {
-        Logger logger = Logging.logger();
-        if (!logger.isLoggable(Level.FINEST))
-            return;
-
-        logger.finest(String.format("Log packet bytes; position='%d', hex_pos='%04x', count='%d'", position, position, length));
-        for (int i = 0; i != length; ++i) {
-            int val = buffer[position + i] & 0xff;
-            logger.finest(String.format("Packet byte; hex='%02x', dec='%d', val='%c', offset='%d'",
-                    val, val,
-                    (val < 32 || val > 126) ? '.' : val,
-                    i));
-        }
     }
 
     public long getUint32AsLong() throws BufferEndReachedException {
         checkPosition(4);
-        logBytes(4);
         return (((long) getByteUnchecked() << 24) + ((long) getByteUnchecked() << 16) + ((long) getByteUnchecked() << 8) + ((long) getByteUnchecked()));
     }
 
     public long getUint64() throws BufferEndReachedException {
         checkPosition(8);
-        logBytes(8);
         return (((long) getByteUnchecked() << 56) + ((long) getByteUnchecked() << 48) +
                 ((long) getByteUnchecked() << 40) + ((long) getByteUnchecked() << 32) +
                 ((long) getByteUnchecked() << 24) + ((long) getByteUnchecked() << 16) +

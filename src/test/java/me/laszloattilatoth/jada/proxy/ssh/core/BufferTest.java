@@ -38,7 +38,7 @@ public class BufferTest {
         assertCantWriteAfterMaxSize(typeSize, methodToTest::execute);
     }
 
-     void assertCanWriteAfterInitialSize(int typeSize, PutMethodExecutable methodToTest) {
+    void assertCanWriteAfterInitialSize(int typeSize, PutMethodExecutable methodToTest) {
         assertEquals(Buffer.DEFAULT_INIT_SIZE, buffer.initialSize);
         buffer.fillToFirstExpandAtNextByte();
         assertPosLimitAndCapacity(Buffer.DEFAULT_INIT_SIZE, Buffer.DEFAULT_INIT_SIZE, Buffer.DEFAULT_INIT_SIZE);
