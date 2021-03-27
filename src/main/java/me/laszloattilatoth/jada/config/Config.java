@@ -83,6 +83,12 @@ public class Config {
     }
 
     public static class InvalidConfig extends Exception {
+        InvalidConfig() {
+            super();
+        }
 
+        InvalidConfig(String message) {
+            super(message);
+        }
     }
 }

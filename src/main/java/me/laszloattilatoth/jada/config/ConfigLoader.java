@@ -67,13 +67,13 @@ public class ConfigLoader {
             try {
                 options = Config.registeredProxies.get(proxy.get("proxy")).options().getDeclaredConstructor().newInstance();
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new Config.InvalidConfig();
+                throw new Config.InvalidConfig(e.getMessage());
             }
 
             try {
                 options.load((Map<String, Object>) config.getOption("global-options." + proxy.get("getType")), (Map<String, Object>) proxy.get("options"));
             } catch (ProxyOptions.InvalidOptions invalidOptions) {
-                throw new Config.InvalidConfig();
+                throw new Config.InvalidConfig(invalidOptions.getMessage());
             }
             config.proxyConfigs.add(new ProxyConfig((String) proxy.get("name"), (String) proxy.get("proxy"), addresses, target, options));
         }
