@@ -17,6 +17,20 @@
 package me.laszloattilatoth.jada.proxy.ssh.core;
 
 public enum Side {
-    CLIENT,
-    SERVER,
+    CLIENT {
+        @Override
+        public boolean isClient() { return true;}
+
+        public String toString() {return "client"; }
+    },
+    SERVER {
+        @Override
+        public boolean isServer() { return true;}
+
+        public String toString() {return "server";}
+    };
+
+    public boolean isClient() {return false;}
+
+    public boolean isServer() {return false;}
 }

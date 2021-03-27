@@ -60,18 +60,6 @@ public class KeyExchange extends WithTransportLayer {
         return state;
     }
 
-    public boolean isClientSide() {
-        return side == Constant.CLIENT_SIDE;
-    }
-
-    public boolean isServerSide() {
-        return side == Constant.SERVER_SIDE;
-    }
-
-    public String sideStr() {
-        return isClientSide() ? "client" : "server";
-    }
-
     public void sendInitialMsgKexInit() throws KexException {
         Packet packet = new Packet();
         try {
@@ -114,8 +102,8 @@ public class KeyExchange extends WithTransportLayer {
 
     // Validated/partially based on OpenSSH kex.c: kex_choose_conf
     private void chooseAlgos() throws TransportLayerException {
-        KexInitEntries client = isClientSide() ? peerInitPacket : ownInitPacket;
-        KexInitEntries server = isClientSide() ? ownInitPacket : peerInitPacket;
+        KexInitEntries client = side.isClient() ? peerInitPacket : ownInitPacket;
+        KexInitEntries server = side.isClient() ? ownInitPacket : peerInitPacket;
 
         // not checking ext_info_c - RFC 8308
 
@@ -124,7 +112,7 @@ public class KeyExchange extends WithTransportLayer {
         chooseHostKeyAlg(client, server);
 
         for (int mode = Constant.MODE_IN; mode != Constant.MODE_MAX; ++mode) {
-            boolean c2s = (isClientSide() && mode == Constant.MODE_IN) || (isServerSide() && mode == Constant.MODE_OUT);
+            boolean c2s = (side.isClient() && mode == Constant.MODE_IN) || (side.isServer() && mode == Constant.MODE_OUT);
             int encIdx = c2s ? KexInitEntries.ENTRY_ENC_ALGOS_C2S : KexInitEntries.ENTRY_ENC_ALGOS_S2C;
             int macIdx = c2s ? KexInitEntries.ENTRY_MAC_ALGOS_C2S : KexInitEntries.ENTRY_MAC_ALGOS_S2C;
             int compIdx = c2s ? KexInitEntries.ENTRY_COMP_ALGOS_C2S : KexInitEntries.ENTRY_COMP_ALGOS_S2C;
@@ -142,7 +130,7 @@ public class KeyExchange extends WithTransportLayer {
                     newkeys.mac.name(),
                     "none", // FIXME
                     c2s ? "client->server" : "server->client",
-                    sideStr()
+                    side
             ));
         }
 
@@ -175,7 +163,7 @@ public class KeyExchange extends WithTransportLayer {
 
     private void chooseHostKeyAlg(KexInitEntries client, KexInitEntries server) throws TransportLayerException {
         hostKeyAlg = chooseAlg(client, server, KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, "No matching HostKey algorithm");
-        KeyAlgo keyAlgo = KeyAlgos.byNameWithId(this.kexName);
+        KeyAlgo keyAlgo = KeyAlgos.byNameWithId(hostKeyAlg);
         if (keyAlgo == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated host key algorithm is not supported");
             throw new KexException(String.format("Negotiated host key algorithm is not supported; algo='%s'", hostKeyAlg.name()));
@@ -200,9 +188,9 @@ public class KeyExchange extends WithTransportLayer {
         if (nameId == Name.SSH_NAME_UNKNOWN) {
             logger.severe(() -> String.format("KEX algo list mismatch; error='%s', own='%s', peer='%s', side='%s'",
                     exceptionString,
-                    isClientSide() ? server.nameList() : client.nameList(),
-                    isServerSide() ? server.nameList() : client.nameList(),
-                    sideStr()
+                    side.isClient() ? server.nameList() : client.nameList(),
+                    side.isServer() ? server.nameList() : client.nameList(),
+                    side
             ));
             throw new KexException(exceptionString);
         }
