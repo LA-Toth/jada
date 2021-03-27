@@ -123,3 +123,5 @@ cast128-ctr      OPTIONAL          CAST-128 in SDCTR mode,
 # (host key and publickey user auth)
 rsa-sha2-256        RECOMMENDED    sign    Raw RSA key
 rsa-sha2-512        OPTIONAL       sign    Raw RSA key
+
+jada    DUMMY FOR TESTING PURPOSES
