@@ -27,13 +27,12 @@ public class ConfigLoader {
             throw new Config.InvalidConfig();
 
         Object pr = config.getOption("proxies");
-        System.out.println(pr);
         if (!(pr instanceof List))
             throw new Config.InvalidConfig();
 
         Object globalOptsObj = config.getOption("global-options");
-        if (globalOptsObj != null && !(globalOptsObj instanceof List))
-            throw new Config.InvalidConfig();
+        if (globalOptsObj != null && !(globalOptsObj instanceof Map))
+            throw new Config.InvalidConfig("global-options must be a Map");
 
         Map<String, Object> globalOptions = (Map<String, Object>) globalOptsObj;
         if (globalOptions != null) {
@@ -71,7 +70,7 @@ public class ConfigLoader {
             }
 
             try {
-                options.load((Map<String, Object>) config.getOption("global-options." + proxy.get("getType")), (Map<String, Object>) proxy.get("options"));
+                options.load((Map<String, Object>) config.getOption("global-options." + proxy.get("proxy")), (Map<String, Object>) proxy.get("options"));
             } catch (ProxyOptions.InvalidOptions invalidOptions) {
                 throw new Config.InvalidConfig(invalidOptions.getMessage());
             }
@@ -98,7 +97,6 @@ public class ConfigLoader {
 
     private SocketAddress loadAddress(String addr) throws Config.InvalidConfig {
         boolean ipv4 = false;
-        System.out.println(addr);
         String[] parts = addr.split(":");
         if (addr.startsWith("ip4:") || addr.startsWith("ipv4:")) {
             ipv4 = true;

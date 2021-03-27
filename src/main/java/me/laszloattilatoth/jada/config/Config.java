@@ -62,8 +62,7 @@ public class Config {
 
         Object obj = config;
 
-        for (String p :
-                parts) {
+        for (String p : parts) {
             if (!(obj instanceof Map))
                 return null;
 

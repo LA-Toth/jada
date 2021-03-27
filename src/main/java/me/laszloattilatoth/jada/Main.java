@@ -118,6 +118,7 @@ public class Main {
             m.registerToSelector(selector);
         }
 
+        Logging.logger().info("Loaded proxies are ready for connections;");
         while (true) {
             if (selector.select() <= 0)
                 continue;
