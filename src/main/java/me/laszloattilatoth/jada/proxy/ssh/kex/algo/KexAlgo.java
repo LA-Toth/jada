@@ -19,5 +19,7 @@ package me.laszloattilatoth.jada.proxy.ssh.kex.algo;
 public record KexAlgo(String name, int nameId, Digest digestId) {
     public enum Digest {
         SHA1,
+        SHA256,
+        SHA512,
     }
 }

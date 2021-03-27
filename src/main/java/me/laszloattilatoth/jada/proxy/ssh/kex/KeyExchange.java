@@ -171,8 +171,8 @@ public class KeyExchange extends WithTransportLayer {
     }
 
     private void chooseKex(KexInitEntries client, KexInitEntries server) throws TransportLayerException {
-        this.kexName = chooseAlg(client, server, KexInitEntries.ENTRY_KEX_ALGOS, "No matching KEX algorithm");
-        KexAlgo kexAlgo = KexAlgos.byNameWithId(this.kexName);
+        kexName = chooseAlg(client, server, KexInitEntries.ENTRY_KEX_ALGOS, "No matching KEX algorithm");
+        KexAlgo kexAlgo = KexAlgos.byNameWithId(kexName);
         if (kexAlgo == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated KEX algorithm is not supported");
             throw new KexException(String.format("v; algo='%s'", kexName.name()));

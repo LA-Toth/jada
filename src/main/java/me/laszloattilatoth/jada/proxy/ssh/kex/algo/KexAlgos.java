@@ -28,6 +28,7 @@ public class KexAlgos {
     static {
         put("diffie-hellman-group1-sha1", KexAlgo.Digest.SHA1);
         put("diffie-hellman-group14-sha1", KexAlgo.Digest.SHA1);
+        put("diffie-hellman-group14-sha256", KexAlgo.Digest.SHA256);
     }
 
     public static KexAlgo byId(int nameId) {

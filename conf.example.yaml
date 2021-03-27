@@ -19,3 +19,7 @@ proxies:
     proxy: ssh
     address: localhost:2223
     target: inband
+global-options:
+  ssh:
+    client:
+      kex-algos: diffie-hellman-group1-sha1,diffie-hellman-group14-sha1,diffie-hellman-group14-sha256

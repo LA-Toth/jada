@@ -125,3 +125,13 @@ rsa-sha2-256        RECOMMENDED    sign    Raw RSA key
 rsa-sha2-512        OPTIONAL       sign    Raw RSA key
 
 jada    DUMMY FOR TESTING PURPOSES
+
+# Additional host keys from https://tools.ietf.org/id/draft-ietf-curdle-ssh-kex-sha2-09.html#rfc.section.3.6
+# and used by OpenSSH
+diffie-hellman-group-exchange-sha1
+diffie-hellman-group-exchange-sha256
+diffie-hellman-group14-sha256
+diffie-hellman-group15-sha512
+diffie-hellman-group16-sha512
+diffie-hellman-group17-sha512
+diffie-hellman-group18-sha512

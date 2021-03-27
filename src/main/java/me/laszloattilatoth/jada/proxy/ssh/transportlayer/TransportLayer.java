@@ -185,7 +185,6 @@ public abstract class TransportLayer {
         try {
             kex.sendInitialMsgKexInit();
             readAndHandlePacket();
-            throw new IOException("temp");
         } catch (IOException e) {
             logger.severe("Unable to read packet string;");
             Logging.logException(logger, e, Level.INFO);
