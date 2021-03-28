@@ -2,6 +2,7 @@ package me.laszloattilatoth.jada.proxy.ssh.core;
 
 import me.laszloattilatoth.jada.util.Logging;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -192,13 +193,17 @@ public class Buffer<T extends Buffer<T>> {
         return s;
     }
 
-    public byte[] getMpInt() throws BufferEndReachedException {
+    public byte[] getMpIntBytes() throws BufferEndReachedException {
         int length = getUint32();
         checkPosition(length);
 
         byte[] b = Arrays.copyOfRange(buffer, position, length);
         position += length;
         return b;
+    }
+
+    public BigInteger getMpInt() throws BufferEndReachedException {
+        return new BigInteger(getMpIntBytes());
     }
 
     @SuppressWarnings("unchecked")

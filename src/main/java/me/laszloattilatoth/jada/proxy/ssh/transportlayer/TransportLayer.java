@@ -51,6 +51,7 @@ public abstract class TransportLayer {
     private final List<Packet> replayPackets = new ArrayList<>();
     protected DataInputStream dataInputStream = null;
     protected DataOutputStream dataOutputStream = null;
+    protected int skipPackets = 0;
 
     public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
         this.proxy = new WeakReference<>(proxy);
@@ -86,7 +87,11 @@ public abstract class TransportLayer {
     }
 
     public final SshProxyThread proxy() {
-        return Objects.requireNonNull(proxy).get();
+        return Objects.requireNonNull(proxy.get(), "Proxy cannot be nul in transport layer");
+    }
+
+    public void skipPackets(int count) {
+        skipPackets = count;
     }
 
     /**
@@ -98,6 +103,7 @@ public abstract class TransportLayer {
         readVersionString();
         switchToDataStreams();
         exchangeKeys();
+        handlePacketsInLoop();
     }
 
     private void writeVersionString() {
@@ -186,7 +192,7 @@ public abstract class TransportLayer {
             kex.sendInitialMsgKexInit();
             readAndHandlePacket();
         } catch (IOException e) {
-            logger.severe("Unable to read packet string;");
+            logger.severe("Unable to read packet;");
             Logging.logException(logger, e, Level.INFO);
             throw new TransportLayerException("Unable to read packet");
         }
@@ -196,8 +202,15 @@ public abstract class TransportLayer {
         Packet packet = readPacket();
         packet.dump();
         byte packetType = packet.getType();
-        logger.info(() -> String.format("Processing packet; type='%d', hex_type='%x', type_name='%s', length='%d'",
+        boolean shouldSkip = skipPackets > 0;
+        logger.info(() -> String.format("%s packet; type='%d', hex_type='%x', type_name='%s', length='%d'",
+                (shouldSkip ? "Skipping" : "Processing"),
                 packetType, packetType, packetTypeNames[packetType], packet.limit()));
+
+        if (shouldSkip) {
+            --skipPackets;
+            return;
+        }
 
         if (kex.getState() == KeyExchange.State.WAIT_FOR_OTHER_KEXINIT && packetType != Constant.SSH_MSG_KEXINIT)
             storePacket(packet);
@@ -245,6 +258,18 @@ public abstract class TransportLayer {
             dataOutputStream.writeByte(0);
         // FIXME: mac
         dataOutputStream.flush();
+    }
+
+    private void handlePacketsInLoop() throws TransportLayerException {
+        try {
+            while (!proxy().shouldQuit()) {
+                readAndHandlePacket();
+            }
+        } catch (IOException e) {
+            logger.severe("Unable to read packet;");
+            Logging.logException(logger, e, Level.INFO);
+            throw new TransportLayerException("Unable to read packet");
+        }
     }
 
     private void processMsgIgnore(Packet packet) {

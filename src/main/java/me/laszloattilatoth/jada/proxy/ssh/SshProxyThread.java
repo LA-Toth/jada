@@ -48,4 +48,8 @@ public class SshProxyThread extends ProxyThread {
             Logging.logExceptionWithBacktrace(logger, e, Level.INFO);
         }
     }
+
+    public boolean shouldQuit() {
+        return false;
+    }
 }

@@ -22,21 +22,40 @@ import me.laszloattilatoth.jada.proxy.ssh.algo.KeyAlgos;
 import me.laszloattilatoth.jada.proxy.ssh.core.*;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgo;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgos;
+import me.laszloattilatoth.jada.proxy.ssh.kex.dh.DHFactory;
+import me.laszloattilatoth.jada.proxy.ssh.kex.dh.DiffieHellman;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.WithTransportLayer;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
+import org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters;
+import org.bouncycastle.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.file.Paths;
 import java.util.Objects;
 
 public class KeyExchange extends WithTransportLayer {
     private final State state = State.INITIAL;
     private final KexInitPacket ownInitPacket = new KexInitPacket();
     private final NewKeys[] newKeys = new NewKeys[Constant.MODE_MAX];
+    protected AsymmetricCipherKeyPair hostKey;
+    DiffieHellman dh;
     private KexInitPacket peerInitPacket;
     private NameWithId kexName;
-    private NameWithId hostKeyAlg;
+    private NameWithId hostKeyAlgName;
+    private KexAlgo kexAlgo = null;
+    private KeyAlgo hostKeyAlgo = null;
 
     public KeyExchange(TransportLayer transportLayer) {
         super(transportLayer);
@@ -53,6 +72,37 @@ public class KeyExchange extends WithTransportLayer {
             this.ownInitPacket.set(KexInitEntries.ENTRY_COMP_ALGOS_S2C, this.ownInitPacket.get(KexInitEntries.ENTRY_COMP_ALGOS_C2S));
         } catch (KexException e) {
             // cannot happen. FIXME.
+        }
+    }
+
+    private void loadHostKey() throws TransportLayerException {
+        try {
+            AsymmetricKeyParameter privateKey = readPrivateKey(Paths.get(System.getProperty("user.home"), ".config/jada/ssh_host_rsa_key").toFile());
+
+            if (privateKey instanceof RSAPrivateCrtKeyParameters rsa) {
+                var pub = new RSAKeyParameters(false, rsa.getModulus(), rsa.getPublicExponent());
+                hostKey = new AsymmetricCipherKeyPair(pub, privateKey);
+            } else if (privateKey instanceof Ed25519PrivateKeyParameters ed) {
+                var pub = ed.generatePublicKey();
+                hostKey = new AsymmetricCipherKeyPair(pub, privateKey);
+            }
+            if (hostKey == null)
+                throw new TransportLayerException(String.format("The key type %s is not supported.", privateKey));
+        } catch (IOException e) {
+            throw new TransportLayerException(e.getMessage());
+        }
+    }
+
+    protected AsymmetricKeyParameter readPrivateKey(File file) throws IOException, TransportLayerException {
+        try (FileReader keyReader = new FileReader(file)) {
+            PEMParser pemParser = new PEMParser(keyReader);
+            PEMKeyPair keyPair = (PEMKeyPair) pemParser.readObject();
+            PrivateKeyInfo pki = keyPair.getPrivateKeyInfo();
+            try {
+                return PrivateKeyFactory.createKey(pki);
+            } catch (IOException ex) {
+                throw new TransportLayerException(ex.getMessage());
+            }
         }
     }
 
@@ -98,6 +148,8 @@ public class KeyExchange extends WithTransportLayer {
         // TODO: not always save peer packet
         peerInitPacket = initPacket;
         chooseAlgos();
+        prepareDH(initPacket);
+        transportLayer().registerHandler(Constant.SSH_MSG_KEXDH_INIT, this::processKexDhInit, "SSH_MSG_KEXDH_INIT");
     }
 
     // Validated/partially based on OpenSSH kex.c: kex_choose_conf
@@ -133,46 +185,20 @@ public class KeyExchange extends WithTransportLayer {
                     side
             ));
         }
-
-        // Send KexDH reply
-        //
-        /*
-
-        	need = dh_need = 0;
-	for (mode = 0; mode < MODE_MAX; mode++) {
-		newkeys = kex->newkeys[mode];
-		need = MAXIMUM(need, newkeys->enc.key_len);
-		need = MAXIMUM(need, newkeys->enc.block_size);
-		need = MAXIMUM(need, newkeys->enc.iv_len);
-		need = MAXIMUM(need, newkeys->mac.key_len);
-		dh_need = MAXIMUM(dh_need, cipher_seclen(newkeys->enc.cipher));
-		dh_need = MAXIMUM(dh_need, newkeys->enc.block_size);
-		dh_need = MAXIMUM(dh_need, newkeys->enc.iv_len);
-		dh_need = MAXIMUM(dh_need, newkeys->mac.key_len);
-	}
-        kex->we_need = need;
-        kex->dh_need = dh_need;
-
-
-        if (first_kex_follows && !proposals_match(my, peer))
-            ssh->dispatch_skip_packets = 1;
-        r = 0;
-        out:
-         */
     }
 
     private void chooseHostKeyAlg(KexInitEntries client, KexInitEntries server) throws TransportLayerException {
-        hostKeyAlg = chooseAlg(client, server, KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, "No matching HostKey algorithm");
-        KeyAlgo keyAlgo = KeyAlgos.byNameWithId(hostKeyAlg);
-        if (keyAlgo == null) {
+        hostKeyAlgName = chooseAlg(client, server, KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, "No matching HostKey algorithm");
+        hostKeyAlgo = KeyAlgos.byNameWithId(hostKeyAlgName);
+        if (hostKeyAlgo == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated host key algorithm is not supported");
-            throw new KexException(String.format("Negotiated host key algorithm is not supported; algo='%s'", hostKeyAlg.name()));
+            throw new KexException(String.format("Negotiated host key algorithm is not supported; algo='%s'", hostKeyAlgName.name()));
         }
     }
 
     private void chooseKex(KexInitEntries client, KexInitEntries server) throws TransportLayerException {
         kexName = chooseAlg(client, server, KexInitEntries.ENTRY_KEX_ALGOS, "No matching KEX algorithm");
-        KexAlgo kexAlgo = KexAlgos.byNameWithId(kexName);
+        kexAlgo = KexAlgos.byNameWithId(kexName);
         if (kexAlgo == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated KEX algorithm is not supported");
             throw new KexException(String.format("v; algo='%s'", kexName.name()));
@@ -211,6 +237,29 @@ public class KeyExchange extends WithTransportLayer {
     private void chooseCompAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws KexException {
         NameWithId compAlg = chooseAlg(client, server, index, "No matching Compression algorithm");
         newKeys.setCompression(compAlg);
+    }
+
+    private void prepareDH(KexInitPacket initPacket) throws TransportLayerException {
+        if (initPacket.follows && (
+                !initPacket.isFirstNameEquals(KexInitEntries.ENTRY_KEX_ALGOS, ownInitPacket)
+                        || !initPacket.isFirstNameEquals(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, ownInitPacket))) {
+            this.transportLayer().skipPackets(1);
+        }
+        loadHostKey();
+    }
+
+    public void processKexDhInit(Packet packet) throws TransportLayerException {
+        BigInteger publicKey = null;
+        try {
+            packet.getByte();
+            publicKey = packet.getMpInt();
+            if (!packet.limitReached())
+                throw new TransportLayerException("Unexpected additional data found in Packet");
+        } catch (Buffer.BufferEndReachedException e) {
+            throw new TransportLayerException(e.getMessage());
+        }
+
+        dh = DHFactory.createFromKexAlgoId(kexAlgo.nameId());
     }
 
     public enum State {

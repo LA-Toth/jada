@@ -37,8 +37,12 @@ public abstract class WithTransportLayer {
         this.logger = transportLayer.getLogger();
     }
 
+    protected TransportLayer transportLayer() {
+        return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
+    }
+
     protected Options options() {
-        return Objects.requireNonNull(transportLayer).get().proxy().options();
+        return transportLayer().proxy().options();
     }
 
     protected void sendDisconnectMsg(long reasonCode, String reason) throws TransportLayerException {

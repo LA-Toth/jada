@@ -26,7 +26,8 @@ public class Macs {
     private static final Map<Integer, Mac> list = new HashMap<>();
 
     static {
-        put("hmac-sha1");
+        put("hmac-sha1", 0, 0, 0);
+        put("hmac-md5", 0, 0, 0);
     }
 
     public static Mac byId(int nameId) {
@@ -47,8 +48,8 @@ public class Macs {
         return byId(nameWithId.nameId());
     }
 
-    private static void put(String name) {
+    private static void put(String name, int truncateBits, int keyLen, int len) {
         int nameId = Name.getNameId(name);
-        list.put(nameId, new Mac(name, nameId));
+        list.put(nameId, new Mac(name, nameId, truncateBits, keyLen, len));
     }
 }

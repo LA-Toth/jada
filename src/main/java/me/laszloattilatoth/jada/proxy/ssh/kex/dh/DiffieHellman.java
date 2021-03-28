@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2021 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package me.laszloattilatoth.jada.proxy.ssh.kex.algo;
 
-public record Mac(String name, int nameId, int truncateBits, int keyLen, int len) {
+package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
+
+public class DiffieHellman {
 }

@@ -49,6 +49,10 @@ public class KexInitPacket extends KexInitEntries {
         return true;
     }
 
+    public boolean isFirstNameEquals(int index, KexInitPacket other) {
+        return entries[index].isFirstNameEquals(other.entries[index]);
+    }
+
     public void writeToPacket(Packet packet) throws Packet.BufferEndReachedException {
         packet.putByte(Constant.SSH_MSG_KEXINIT);
         for (int i = 0; i != COOKIE_LEN; ++i)
