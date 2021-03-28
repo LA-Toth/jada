@@ -74,6 +74,7 @@ public class Constant {
     // RFC 2450  SSH Protocol Assigned Numbers
     // 4.1.  Message Numbers
     // 4.1.2.  Initial Assignments
+    // with errata (KEXDH was missing)
     public static final int SSH_MSG_DISCONNECT = 1;
     public static final int SSH_MSG_IGNORE = 2;
     public static final int SSH_MSG_UNIMPLEMENTED = 3;
@@ -82,6 +83,8 @@ public class Constant {
     public static final int SSH_MSG_SERVICE_ACCEPT = 6;
     public static final int SSH_MSG_KEXINIT = 20;
     public static final int SSH_MSG_NEWKEYS = 21;
+    public static final int SSH_MSG_KEXDH_INIT = 30;
+    public static final int SSH_MSG_KEXDH_REPLY = 31;
     public static final int SSH_MSG_USERAUTH_REQUEST = 50;
     public static final int SSH_MSG_USERAUTH_FAILURE = 51;
     public static final int SSH_MSG_USERAUTH_SUCCESS = 52;
@@ -100,6 +103,17 @@ public class Constant {
     public static final int SSH_MSG_CHANNEL_REQUEST = 98;
     public static final int SSH_MSG_CHANNEL_SUCCESS = 99;
     public static final int SSH_MSG_CHANNEL_FAILURE = 100;
+
+    // RFC 4252  SSH Authentication Protocol
+    // 7.  Public Key Authentication Method: "publickey"
+    // 8.  Password Authentication Method: "password"
+    public static final int SSH_MSG_USERAUTH_PK_OK = 60;
+    public static final int SSH_MSG_USERAUTH_PASSWD_CHANGEREQ = 60;
+
+    // RFC 4256 Generic Message Exchange Authentication for SSH (keyboard-interactive)
+    // 5.  IANA Considerations
+    public static final int SSH_MSG_USERAUTH_INFO_REQUEST = 60;
+    public static final int SSH_MSG_USERAUTH_INFO_RESPONSE = 61;
 
     public static final String[] SSH_MSG_NAMES = new String[256];
 
