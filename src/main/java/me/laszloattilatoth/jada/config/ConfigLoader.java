@@ -16,6 +16,8 @@
 
 package me.laszloattilatoth.jada.config;
 
+import me.laszloattilatoth.jada.proxy.core.registration.Registrar;
+
 import java.lang.reflect.InvocationTargetException;
 import java.net.*;
 import java.util.List;
@@ -58,13 +60,15 @@ public class ConfigLoader {
                 throw new Config.InvalidConfig();
             if (proxy.containsKey("options") && !(proxy.get("options") instanceof Map))
                 throw new Config.InvalidConfig();
+            if (!Registrar.supportedProxy((String) proxy.get("proxy")))
+                throw new Config.InvalidConfig(("The requested proxy type is not supported"));
 
             SocketAddress[] addresses = loadAddresses(proxy.get("address"));
             SocketAddress target = loadAddressWithInband((String) proxy.get("target"));
 
             ProxyOptions options = null;
             try {
-                options = Config.registeredProxies.get(proxy.get("proxy")).options().getDeclaredConstructor().newInstance();
+                options = Config.registeredProxies.get((String) proxy.get("proxy")).options().getDeclaredConstructor().newInstance();
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new Config.InvalidConfig(e.getMessage());
             }
@@ -80,9 +84,9 @@ public class ConfigLoader {
 
     private SocketAddress[] loadAddresses(Object o) throws Config.InvalidConfig {
         SocketAddress[] result = null;
-        if (o instanceof String) {
+        if (o instanceof String s) {
             result = new SocketAddress[1];
-            result[0] = loadAddress((String) o);
+            result[0] = loadAddress(s);
         } else {
             List<String> sList = (List<String>) o;
             result = new SocketAddress[sList.size()];
