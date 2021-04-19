@@ -17,7 +17,6 @@
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
-import me.laszloattilatoth.jada.proxy.ssh.core.Buffer;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
@@ -39,7 +38,6 @@ import java.util.logging.Logger;
 public abstract class TransportLayer {
     private static final String UNKNOWN_STR = "(unknown)";
     private static final String NOT_IMPLEMENTED_STR = "(not implemented)";
-    private static final String SSH_ID_STRING = "SSH-2.0-Jada";
     public final Side side;
     protected final Logger logger;
     protected final SocketChannel socketChannel;
@@ -52,6 +50,7 @@ public abstract class TransportLayer {
     protected DataInputStream dataInputStream = null;
     protected DataOutputStream dataOutputStream = null;
     protected int skipPackets = 0;
+    private String peerIDString;
 
     public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
         this.proxy = new WeakReference<>(proxy);
@@ -94,6 +93,10 @@ public abstract class TransportLayer {
         skipPackets = count;
     }
 
+    public String peerIDString() {
+        return peerIDString;
+    }
+
     /**
      * Starts the layer, aka. send / receive SSH-2.0... string
      * and do the first KEX
@@ -107,9 +110,9 @@ public abstract class TransportLayer {
     }
 
     private void writeVersionString() {
-        logger.info(String.format("Sending version string; version='%s'", SSH_ID_STRING));
+        logger.info(String.format("Sending version string; version='%s'", Constant.SSH_ID_STRING));
         try {
-            socketChannel.write(ByteBuffer.wrap(String.format("%s\r\n", SSH_ID_STRING).getBytes()));
+            socketChannel.write(ByteBuffer.wrap(String.format("%s\r\n", Constant.SSH_ID_STRING).getBytes()));
         } catch (IOException e) {
             logger.severe("Unable to send version string;");
             Logging.logException(logger, e, Level.INFO);
@@ -118,24 +121,22 @@ public abstract class TransportLayer {
 
     private void readVersionString() throws TransportLayerException {
         try {
-
-            String versionString = getVersionStringFromSocket();
-            if (versionString == null)
+            peerIDString = getVersionStringFromSocket();
+            if (peerIDString == null)
                 throw new TransportLayerException("No protocol version string is received");
 
-            if (!versionString.startsWith("SSH-2.0")) {
-                logger.severe(String.format("Unsupported SSH protocol; version_string='%s'", versionString));
+            if (!peerIDString.startsWith("SSH-2.0")) {
+                logger.severe(String.format("Unsupported SSH protocol; version_string='%s'", peerIDString));
                 throw new TransportLayerException("Unsupported SSH protocol");
             }
 
-            logger.info("Remote ID String: " + versionString);
-        } catch (
-                IOException | Buffer.BufferEndReachedException e) {
+            logger.info("Remote ID String: " + peerIDString);
+        } catch (IOException e) {
             Logging.logExceptionWithBacktrace(logger, e, Level.SEVERE);
         }
     }
 
-    private String getVersionStringFromSocket() throws IOException, Buffer.BufferEndReachedException, TransportLayerException {
+    private String getVersionStringFromSocket() throws IOException, TransportLayerException {
         InputStream is = socketChannel.socket().getInputStream();
         Packet pkt = new Packet();
         int data;
@@ -144,7 +145,7 @@ public abstract class TransportLayer {
         String line = null;
 
         for (; nonBannerLineCount < Constant.MAX_PRE_BANNER_LINES; ++nonBannerLineCount) {
-            pkt.rewind();
+            pkt.clear(false);
             for (; ; ) {
                 if ((data = is.read()) < 0)
                     return null;
@@ -158,16 +159,16 @@ public abstract class TransportLayer {
                     throw new TransportLayerException("Unable to read SSH protocol version string");
                 }
                 pkt.putByte(data);
-                if (pkt.limit() > Constant.MAX_BANNER_LENGTH) {
+                if (pkt.available() > Constant.MAX_BANNER_LENGTH) {
                     logger.severe(String.format(
                             "Too long Protocol Version String; truncated_length='%d', max='%d'",
-                            pkt.limit(), Constant.MAX_BANNER_LENGTH));
+                            pkt.available(), Constant.MAX_BANNER_LENGTH));
                     throw new TransportLayerException("Unable to read SSH protocol version string");
                 }
             }
-            if (pkt.limit() <= 4)
+            if (pkt.available() <= 4)
                 continue;
-            pkt.putByte('\n').flip();
+            pkt.putByte('\n');
             line = pkt.getLine();
             if (line.startsWith(Constant.SSH_VERSION_PREFIX))
                 return line;
@@ -201,11 +202,11 @@ public abstract class TransportLayer {
     public void readAndHandlePacket() throws IOException, TransportLayerException {
         Packet packet = readPacket();
         packet.dump();
-        byte packetType = packet.getType();
+        byte packetType = packet.packetType();
         boolean shouldSkip = skipPackets > 0;
         logger.info(() -> String.format("%s packet; type='%d', hex_type='%x', type_name='%s', length='%d'",
                 (shouldSkip ? "Skipping" : "Processing"),
-                packetType, packetType, packetTypeNames[packetType], packet.limit()));
+                packetType, packetType, packetTypeNames[packetType], packet.wpos()));
 
         if (shouldSkip) {
             --skipPackets;
@@ -246,13 +247,25 @@ public abstract class TransportLayer {
     public void writePacket(Packet packet) throws IOException {
         logger.info("Writing packet");
         packet.dump();
-        int payloadSize = packet.limit();
+        writePacketBytes(packet.array(), packet.wpos());
+    }
+
+    public void writePacket(byte[] bytes, int payloadSize) throws IOException {
+        logger.info("Writing packet");
+        Logger logger = Logging.logger();
+        logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
+                bytes[0], bytes[0], payloadSize));
+        Logging.logBytes(logger, bytes, payloadSize);
+        writePacketBytes(bytes, payloadSize);
+    }
+
+    private void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
         int withHeaders = payloadSize + 1 + 4;
         int paddingLength = (withHeaders + 7) / 8 * 8 - withHeaders;
 
         dataOutputStream.writeInt(payloadSize + paddingLength + 1);
         dataOutputStream.writeByte(paddingLength);
-        dataOutputStream.write(packet.array(), 0, payloadSize);
+        dataOutputStream.write(bytes, 0, payloadSize);
         // FIXME: secure padding
         for (int i = 0; i != paddingLength; ++i)
             dataOutputStream.writeByte(0);

@@ -30,7 +30,15 @@ public enum Side {
         public String toString() {return "server";}
     };
 
+    public static Side otherSide(Side side) {
+        return side.isClient() ? Side.SERVER : Side.CLIENT;
+    }
+
     public boolean isClient() {return false;}
 
     public boolean isServer() {return false;}
+
+    public Side otherSide() {
+        return otherSide(this);
+    }
 }

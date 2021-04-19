@@ -19,15 +19,19 @@ package me.laszloattilatoth.jada.proxy.ssh.kex;
 import me.laszloattilatoth.jada.proxy.ssh.Options;
 import me.laszloattilatoth.jada.proxy.ssh.algo.KeyAlgo;
 import me.laszloattilatoth.jada.proxy.ssh.algo.KeyAlgos;
-import me.laszloattilatoth.jada.proxy.ssh.core.*;
+import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
+import me.laszloattilatoth.jada.proxy.ssh.core.Name;
+import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
+import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgo;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgos;
+import me.laszloattilatoth.jada.proxy.ssh.kex.dh.DH;
 import me.laszloattilatoth.jada.proxy.ssh.kex.dh.DHFactory;
-import me.laszloattilatoth.jada.proxy.ssh.kex.dh.DiffieHellman;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.WithTransportLayer;
+import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
@@ -41,21 +45,21 @@ import org.bouncycastle.openssl.PEMParser;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.file.Paths;
-import java.util.Objects;
 
 public class KeyExchange extends WithTransportLayer {
     private final State state = State.INITIAL;
     private final KexInitPacket ownInitPacket = new KexInitPacket();
     private final NewKeys[] newKeys = new NewKeys[Constant.MODE_MAX];
     protected AsymmetricCipherKeyPair hostKey;
-    DiffieHellman dh;
+    DH dh;
     private KexInitPacket peerInitPacket;
     private NameWithId kexName;
     private NameWithId hostKeyAlgName;
     private KexAlgo kexAlgo = null;
     private KeyAlgo hostKeyAlgo = null;
+    private byte[] ownKexInit;
+    private byte[] peerKexInit;
 
     public KeyExchange(TransportLayer transportLayer) {
         super(transportLayer);
@@ -111,16 +115,14 @@ public class KeyExchange extends WithTransportLayer {
     }
 
     public void sendInitialMsgKexInit() throws KexException {
-        Packet packet = new Packet();
-        try {
-            ownInitPacket.writeToPacket(packet);
-        } catch (Packet.BufferEndReachedException e) {
-            logger.severe(() -> String.format("Unable to send SSH_MSG_KEXINIT; error='%s'", e.getMessage()));
-            throw new KexException(e.getMessage());
+        if (ownKexInit == null) {
+            Packet pkt = new Packet();
+            ownInitPacket.writeToPacket(pkt);
+            ownKexInit = pkt.getCompactData();
         }
 
         try {
-            Objects.requireNonNull(transportLayer.get()).writePacket(packet);
+            transportLayer().writePacket(ownKexInit, ownKexInit.length);
         } catch (IOException e) {
             logger.severe(() -> String.format("Unable to send SSH_MSG_KEXINIT; error='%s'", e.getMessage()));
             throw new KexException(e.getMessage());
@@ -129,24 +131,19 @@ public class KeyExchange extends WithTransportLayer {
 
     /// RFC 4253 7.1.  Algorithm Negotiation (SSH_MSG_KEXINIT)
     public void processMsgKexInit(Packet packet) throws TransportLayerException {
-        Objects.requireNonNull(transportLayer.get()).unregisterHandler(Constant.SSH_MSG_KEXINIT);
+        transportLayer().unregisterHandler(Constant.SSH_MSG_KEXINIT);
 
         KexInitPacket initPacket = new KexInitPacket();
-        try {
-            initPacket.readFromPacket(packet);
-        } catch (Buffer.BufferEndReachedException e) {
-            logger.severe(() -> String.format("Unable to parse SSH_MSG_KEXINIT; error='%s'", e.getMessage()));
-            throw new KexException(e.getMessage());
-        }
+        initPacket.readFromPacket(packet);
 
         if (!initPacket.valid()) {
             logger.severe("Peer KEXINIT packet contains at least algorithm list which is empty or contains only unknown algos;");
             throw new KexException("Unable to process SSH_MSG_KEXINIT, no known algorithms;");
         }
 
-        // TODO: rekeying -send our own kex packet
-        // TODO: not always save peer packet
+        // TODO: rekeying - send our own kex packet
         peerInitPacket = initPacket;
+        peerKexInit = packet.getCompactData();
         chooseAlgos();
         prepareDH(initPacket);
         transportLayer().registerHandler(Constant.SSH_MSG_KEXDH_INIT, this::processKexDhInit, "SSH_MSG_KEXDH_INIT");
@@ -249,17 +246,26 @@ public class KeyExchange extends WithTransportLayer {
     }
 
     public void processKexDhInit(Packet packet) throws TransportLayerException {
-        BigInteger publicKey = null;
-        try {
-            packet.getByte();
-            publicKey = packet.getMpInt();
-            if (!packet.limitReached())
-                throw new TransportLayerException("Unexpected additional data found in Packet");
-        } catch (Buffer.BufferEndReachedException e) {
-            throw new TransportLayerException(e.getMessage());
-        }
+        byte[] e = null;
+        packet.getByte();
+        e = packet.getMPIntAsBytes();
+        if (!packet.endReached())
+            throw new TransportLayerException("Unexpected additional data found in Packet");
 
-        dh = DHFactory.createFromKexAlgoId(kexAlgo.nameId());
+        dh = DHFactory.createFromKexAlgoId(kexAlgo.nameId(),
+                Constant.SSH_ID_STRING,
+                transportLayer().peerIDString(),
+                ownKexInit,
+                peerKexInit,
+                side
+        );
+
+        dh.setE(e);
+
+        ByteArrayBuffer buffer = new ByteArrayBuffer();
+        //buffer.putPublicKey(hostKey.getPublic());
+        byte[] k_s = buffer.getCompactData();
+        buffer = dh.prepareBuffer();
     }
 
     public enum State {

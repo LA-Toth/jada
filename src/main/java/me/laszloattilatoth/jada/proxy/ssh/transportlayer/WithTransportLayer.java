@@ -52,15 +52,10 @@ public abstract class WithTransportLayer {
 
     private void sendSingleDisconnectMsg(TransportLayer t, long reasonCode, String reason) throws TransportLayerException {
         Packet packet = new Packet();
-        try {
-            packet.putByte(Constant.SSH_MSG_DISCONNECT);
-            packet.putUint32(reasonCode);
-            packet.putString(reason);
-            packet.putString("");
-        } catch (Packet.BufferEndReachedException e) {
-            logger.severe(() -> String.format("Unable to create SSH_MSG_DISCONNECT message; error='%s'", e.getMessage()));
-            throw new TransportLayerException(e.getMessage());
-        }
+        packet.putByte(Constant.SSH_MSG_DISCONNECT);
+        packet.putInt(reasonCode);
+        packet.putString(reason);
+        packet.putString("");
 
         try {
             t.writePacket(packet);

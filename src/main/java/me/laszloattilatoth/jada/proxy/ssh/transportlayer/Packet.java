@@ -16,17 +16,16 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
-import me.laszloattilatoth.jada.proxy.ssh.core.Buffer;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.NameListHelper;
 import me.laszloattilatoth.jada.util.Logging;
+import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
-import java.util.ArrayList;
 import java.util.logging.Logger;
 
 /**
  * Representing an SSH packet with ByteBuffer.
  */
-public class Packet extends Buffer<Packet> {
+public class Packet extends ByteArrayBuffer {
 
     public Packet() {
         super();
@@ -36,39 +35,39 @@ public class Packet extends Buffer<Packet> {
         super(bytes);
     }
 
+    public boolean endReached() {
+        return available() == 0;
+    }
+
     public byte packetType() {
-        return getType();
+        return array()[0];
     }
 
     public void dump() {
         Logger logger = Logging.logger();
         logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
-                getType(), getType(), limit));
-        Logging.logBytes(logger, this.buffer, this.limit);
+                packetType(), packetType(), wpos()));
+        Logging.logBytes(logger, this.array(), this.wpos());
     }
 
-    public ArrayList<String> getNameList() throws BufferEndReachedException {
-        int length = getUint32();
-        checkPosition(length);
-
-        ArrayList<String> result = NameListHelper.splitNameList(buffer, position, length);
-        position += length;
-
-        return result;
-    }
-
-    public int[] getNameIdList() throws BufferEndReachedException {
+    public int[] getNameIdList() {
         return NameListHelper.getIdListFromNameArrayList(getNameList());
     }
 
+    public void putByte(int i) {
+        putByte((byte) i);
+    }
+
     public String getLine() {
-        if (limitReached())
+        if (available() == 0)
             return null;
-        int pos = position;
+        final int rpos = rpos();
+        final byte[] data = array();
 
         boolean found = false;
-        for (; pos < limit; ++pos) {
-            if (buffer[pos] == '\r' || buffer[pos] == '\n') {
+        int pos = rpos;
+        for (; pos < wpos(); ++pos) {
+            if (data[pos] == '\r' || data[pos] == '\n') {
                 found = true;
                 break;
             }
@@ -76,10 +75,10 @@ public class Packet extends Buffer<Packet> {
         if (!found)
             return null;
 
-        String result = new String(buffer, position, pos - position);
+        String result = new String(data, rpos(), pos - rpos());
 
-        pos += (pos != position && buffer[pos] == '\r' && buffer[pos + 1] == '\n') ? 2 : 1;
-        position = pos;
+        pos += (pos != rpos && data[pos] == '\r' && data[pos + 1] == '\n') ? 2 : 1;
+        rpos(pos);
         return result;
     }
 }

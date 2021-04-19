@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
+package me.laszloattilatoth.jada.util;
 
-package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
+public class PathUtils {
 
-public class DiffieHellman {
+    public static String expandUser(String path) {
+        if (path.startsWith("~"))
+            return path.replaceFirst("~", System.getProperty("user.home"));
+        // FIXME: ~user, eg. ~root is not supported by now
+        return path;
+    }
 }

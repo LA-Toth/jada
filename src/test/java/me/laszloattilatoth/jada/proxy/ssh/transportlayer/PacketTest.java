@@ -1,11 +1,9 @@
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
-import me.laszloattilatoth.jada.proxy.ssh.core.Buffer;
 import org.junit.jupiter.api.Test;
 
-import java.nio.ByteBuffer;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PacketTest {
 
@@ -17,16 +15,10 @@ public class PacketTest {
         assertEquals("first line", packet.getLine());
         assertEquals("second line", packet.getLine());
         assertEquals("third line", packet.getLine());
+        assertTrue(packet.endReached());
 
-        buffer = new byte[40];
-        ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
-        byteBuffer.put("last line\n".getBytes());
-        try {
-            packet.appendByteBuffer(byteBuffer);
-        } catch (Buffer.BufferEndReachedException e) {
-            fail();
-        }
+        packet.putRawBytes("last line\n".getBytes());
         assertEquals("last line", packet.getLine());
-        assertTrue(packet.limitReached());
+        assertTrue(packet.endReached());
     }
 }

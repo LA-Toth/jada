@@ -24,6 +24,7 @@ import me.laszloattilatoth.jada.proxy.plug.PlugMain;
 import me.laszloattilatoth.jada.proxy.socks.SocksMain;
 import me.laszloattilatoth.jada.proxy.ssh.SshMain;
 import me.laszloattilatoth.jada.util.Logging;
+import me.laszloattilatoth.jada.util.Sec;
 import org.apache.commons.cli.*;
 
 import java.io.FileNotFoundException;
@@ -76,6 +77,11 @@ public class Main {
         else {
             System.err.println("Missing filename");
             System.exit(1);
+            return;
+        }
+
+        if (!Sec.init()) {
+            logger.severe("Unable to initialize security subsystem;");
             return;
         }
 

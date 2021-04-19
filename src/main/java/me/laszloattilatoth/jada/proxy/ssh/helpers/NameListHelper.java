@@ -3,6 +3,7 @@ package me.laszloattilatoth.jada.proxy.ssh.helpers;
 import me.laszloattilatoth.jada.proxy.ssh.core.Name;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class NameListHelper {
 
@@ -46,7 +47,7 @@ public class NameListHelper {
         return getIdListFromNameArrayList(names);
     }
 
-    public static int[] getIdListFromNameArrayList(ArrayList<String> names) {
+    public static int[] getIdListFromNameArrayList(List<String> names) {
         int[] nameIds = new int[names.size() + 1];
         int actualCount = 0;
         int nextPos = 0;

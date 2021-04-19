@@ -19,6 +19,9 @@ package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
 import java.math.BigInteger;
 
 public class Constants {
+    // group1, group14, group16 and group18 uses "2" as generator.
+    public static BigInteger gen = new BigInteger("2");
+
     // RFC 2409
     // 6.1 Second Oakley Group
     // 1024 bits
@@ -31,7 +34,6 @@ public class Constants {
                     "EE386BFB 5A899FA5 AE9F2411 7C4B1FE6 49286651 ECE65381" +
                     "FFFFFFFF FFFFFFFF"
     ).replace(" ", ""), 16);
-    public static BigInteger group1Gen = new BigInteger("2");
 
     // RFC 3526
     // 3. 2048-bit MODP group
@@ -49,7 +51,6 @@ public class Constants {
                     "DE2BCBF6 95581718 3995497C EA956AE5 15D22618 98FA0510" +
                     "15728E5A 8AACAA68 FFFFFFFF FFFFFFFF"
     ).replace(" ", ""), 16);
-    public static BigInteger group14Gen = new BigInteger("2");
 
     // RFC 3526
     // 5. 4096-bit MODP group
@@ -78,7 +79,6 @@ public class Constants {
                     "93B4EA98 8D8FDDC1 86FFB7DC 90A6C08F 4DF435C9 34063199" +
                     "FFFFFFFF FFFFFFFF"
     ).replace(" ", ""), 16);
-    public static BigInteger group16Gen = new BigInteger("2");
 
     // RFC 3526
     // 7. 8192-bit MODP group
@@ -128,5 +128,4 @@ public class Constants {
                     "9558E447 5677E9AA 9E3050E2 765694DF C81F56E8 80B96E71" +
                     "60C980DD 98EDD3DF FFFFFFFF FFFFFFFF"
     ).replace(" ", ""), 16);
-    public static BigInteger group18Gen = new BigInteger("2");
 }

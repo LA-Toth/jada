@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package me.laszloattilatoth.jada.proxy.ssh.kex.digest;
 
 import org.bouncycastle.jcajce.provider.digest.SHA1;

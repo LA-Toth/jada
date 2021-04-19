@@ -33,6 +33,7 @@ public class Constant {
 
     public static final String SSH_VERSION_PREFIX = "SSH-";
     public static final byte[] SSH_VERSION_PREFIX_BYTES = SSH_VERSION_PREFIX.getBytes();
+    public static final String SSH_ID_STRING = "SSH-2.0-Jada";
 
     /*
         RFC 2450  SSH Protocol Assigned Numbers

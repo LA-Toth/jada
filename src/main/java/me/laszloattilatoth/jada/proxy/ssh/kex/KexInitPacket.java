@@ -16,7 +16,6 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.kex;
 
-import me.laszloattilatoth.jada.proxy.ssh.core.Buffer;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
@@ -26,17 +25,18 @@ public class KexInitPacket extends KexInitEntries {
 
     public boolean follows = false;
 
-    public void readFromPacket(Packet packet) throws Buffer.BufferEndReachedException {
+    public void readFromPacket(Packet packet) {
         packet.getByte();   // type
-        packet.getBytes(COOKIE_LEN);
+        byte[] cookie = new byte[COOKIE_LEN];
+        packet.getRawBytes(cookie);
         readEntriesFromPacket(packet);
         follows = packet.getBoolean();
-        packet.getUint32();  // reserved
+        packet.getUInt();  // reserved
     }
 
-    private void readEntriesFromPacket(Packet packet) throws Packet.BufferEndReachedException {
+    private void readEntriesFromPacket(Packet packet) {
         for (int i = 0; i != ENTRY_MAX; ++i) {
-            entries[i] = NameListWithIds.create(packet.getSshString());
+            entries[i] = NameListWithIds.create(packet.getString());
         }
     }
 
@@ -53,7 +53,7 @@ public class KexInitPacket extends KexInitEntries {
         return entries[index].isFirstNameEquals(other.entries[index]);
     }
 
-    public void writeToPacket(Packet packet) throws Packet.BufferEndReachedException {
+    public void writeToPacket(Packet packet) {
         packet.putByte(Constant.SSH_MSG_KEXINIT);
         for (int i = 0; i != COOKIE_LEN; ++i)
             packet.putByte(0);  // FIXME: Security????
@@ -61,6 +61,6 @@ public class KexInitPacket extends KexInitEntries {
             packet.putString(entries[i].nameList());
         }
         packet.putBoolean(false);
-        packet.putUint32(0);   // reserved
+        packet.putInt(0);   // reserved
     }
 }

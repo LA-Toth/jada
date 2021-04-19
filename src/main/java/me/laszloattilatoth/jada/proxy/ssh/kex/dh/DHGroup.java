@@ -16,30 +16,32 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
 
+import me.laszloattilatoth.jada.proxy.ssh.kex.digest.Digest;
 import org.bouncycastle.crypto.params.DHParameters;
 
 import java.math.BigInteger;
 
-public class DiffieHellmanGroup  extends DiffieHellman {
+public class DHGroup extends DH {
     public DHParameters params;
 
-    public DiffieHellmanGroup(BigInteger gen, BigInteger modulus) {
+    private DHGroup(BigInteger gen, BigInteger modulus, Digest digest) {
+        super(digest);
         params = new DHParameters(modulus, null, gen);
     }
 
-    public static DiffieHellmanGroup createGroup1() {
-        return new DiffieHellmanGroup(Constants.group1Gen, Constants.group1Mod);
+    static DHGroup createGroup1(Digest digest) {
+        return new DHGroup(Constants.gen, Constants.group1Mod, digest);
     }
 
-    public static DiffieHellmanGroup createGroup14() {
-        return new DiffieHellmanGroup(Constants.group14Gen, Constants.group14Mod);
+    static DHGroup createGroup14(Digest digest) {
+        return new DHGroup(Constants.gen, Constants.group14Mod, digest);
     }
 
-    public static DiffieHellmanGroup createGroup16() {
-        return new DiffieHellmanGroup(Constants.group16Gen, Constants.group16Mod);
+    static DHGroup createGroup16(Digest digest) {
+        return new DHGroup(Constants.gen, Constants.group16Mod, digest);
     }
 
-    public static DiffieHellmanGroup createGroup18() {
-        return new DiffieHellmanGroup(Constants.group18Gen, Constants.group18Mod);
+    static DHGroup createGroup18(Digest digest) {
+        return new DHGroup(Constants.gen, Constants.group18Mod, digest);
     }
 }
