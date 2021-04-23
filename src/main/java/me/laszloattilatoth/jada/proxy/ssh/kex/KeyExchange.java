@@ -25,41 +25,28 @@ import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgo;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgos;
-import me.laszloattilatoth.jada.proxy.ssh.kex.dh.DH;
-import me.laszloattilatoth.jada.proxy.ssh.kex.dh.DHFactory;
+import me.laszloattilatoth.jada.proxy.ssh.kex.dh.mina.AbstractDHKeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.WithTransportLayer;
-import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
-import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
-import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters;
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.security.KeyPair;
 
-public class KeyExchange extends WithTransportLayer {
-    private final State state = State.INITIAL;
-    private final KexInitPacket ownInitPacket = new KexInitPacket();
-    private final NewKeys[] newKeys = new NewKeys[Constant.MODE_MAX];
-    protected AsymmetricCipherKeyPair hostKey;
-    DH dh;
-    private KexInitPacket peerInitPacket;
-    private NameWithId kexName;
-    private NameWithId hostKeyAlgName;
-    private KexAlgo kexAlgo = null;
-    private KeyAlgo hostKeyAlgo = null;
-    private byte[] ownKexInit;
-    private byte[] peerKexInit;
+public abstract class KeyExchange extends WithTransportLayer {
+    protected final KexInitPacket ownInitPacket = new KexInitPacket();
+    protected final NewKeys[] newKeys = new NewKeys[Constant.MODE_MAX];
+    protected State state = State.INITIAL;
+    protected KexInitPacket peerInitPacket;
+    protected NameWithId kexName;
+    protected NameWithId hostKeyAlgName;
+    protected KexAlgo kexAlgo = null;
+    protected KeyAlgo hostKeyAlgo = null;
+    protected KeyPair hostKey;
+    protected AbstractDHKeyExchange dhKex;
+    protected byte[] ownKexInit;
+    protected byte[] peerKexInit;
 
     public KeyExchange(TransportLayer transportLayer) {
         super(transportLayer);
@@ -79,39 +66,16 @@ public class KeyExchange extends WithTransportLayer {
         }
     }
 
-    private void loadHostKey() throws TransportLayerException {
-        try {
-            AsymmetricKeyParameter privateKey = readPrivateKey(Paths.get(System.getProperty("user.home"), ".config/jada/ssh_host_rsa_key").toFile());
-
-            if (privateKey instanceof RSAPrivateCrtKeyParameters rsa) {
-                var pub = new RSAKeyParameters(false, rsa.getModulus(), rsa.getPublicExponent());
-                hostKey = new AsymmetricCipherKeyPair(pub, privateKey);
-            } else if (privateKey instanceof Ed25519PrivateKeyParameters ed) {
-                var pub = ed.generatePublicKey();
-                hostKey = new AsymmetricCipherKeyPair(pub, privateKey);
-            }
-            if (hostKey == null)
-                throw new TransportLayerException(String.format("The key type %s is not supported.", privateKey));
-        } catch (IOException e) {
-            throw new TransportLayerException(e.getMessage());
-        }
-    }
-
-    protected AsymmetricKeyParameter readPrivateKey(File file) throws IOException, TransportLayerException {
-        try (FileReader keyReader = new FileReader(file)) {
-            PEMParser pemParser = new PEMParser(keyReader);
-            PEMKeyPair keyPair = (PEMKeyPair) pemParser.readObject();
-            PrivateKeyInfo pki = keyPair.getPrivateKeyInfo();
-            try {
-                return PrivateKeyFactory.createKey(pki);
-            } catch (IOException ex) {
-                throw new TransportLayerException(ex.getMessage());
-            }
-        }
-    }
-
     public State getState() {
         return state;
+    }
+
+    public KeyPair getHostKey() {
+        return hostKey;
+    }
+
+    public NameWithId hostKeyAlgName() {
+        return hostKeyAlgName;
     }
 
     public void sendInitialMsgKexInit() throws KexException {
@@ -143,10 +107,9 @@ public class KeyExchange extends WithTransportLayer {
 
         // TODO: rekeying - send our own kex packet
         peerInitPacket = initPacket;
-        peerKexInit = packet.getCompactData();
+        peerKexInit = packet.getCompactArray();
         chooseAlgos();
         prepareDH(initPacket);
-        transportLayer().registerHandler(Constant.SSH_MSG_KEXDH_INIT, this::processKexDhInit, "SSH_MSG_KEXDH_INIT");
     }
 
     // Validated/partially based on OpenSSH kex.c: kex_choose_conf
@@ -202,11 +165,13 @@ public class KeyExchange extends WithTransportLayer {
         }
     }
 
-    private NameWithId chooseAlg(KexInitEntries client, KexInitEntries server, int index, String exceptionString) throws KexException {
+    private NameWithId chooseAlg(KexInitEntries client, KexInitEntries server, int index, String exceptionString) throws
+            KexException {
         return matchList(client.entries[index], server.entries[index], exceptionString);
     }
 
-    private NameWithId matchList(NameListWithIds client, NameListWithIds server, String exceptionString) throws KexException {
+    private NameWithId matchList(NameListWithIds client, NameListWithIds server, String exceptionString) throws
+            KexException {
         int nameId = server.getFirstMatchingId(client);
         if (nameId == Name.SSH_NAME_UNKNOWN) {
             logger.severe(() -> String.format("KEX algo list mismatch; error='%s', own='%s', peer='%s', side='%s'",
@@ -221,17 +186,20 @@ public class KeyExchange extends WithTransportLayer {
         return new NameWithId(nameId);
     }
 
-    private void chooseEncAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws KexException {
+    private void chooseEncAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws
+            KexException {
         NameWithId encAlg = chooseAlg(client, server, index, "No matching Encryption algorithm");
         newKeys.setEncryption(encAlg);
     }
 
-    private void chooseMacAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws KexException {
+    private void chooseMacAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws
+            KexException {
         NameWithId macAlg = chooseAlg(client, server, index, "No matching MAC algorithm");
         newKeys.setMac(macAlg);
     }
 
-    private void chooseCompAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws KexException {
+    private void chooseCompAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws
+            KexException {
         NameWithId compAlg = chooseAlg(client, server, index, "No matching Compression algorithm");
         newKeys.setCompression(compAlg);
     }
@@ -242,30 +210,6 @@ public class KeyExchange extends WithTransportLayer {
                         || !initPacket.isFirstNameEquals(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, ownInitPacket))) {
             this.transportLayer().skipPackets(1);
         }
-        loadHostKey();
-    }
-
-    public void processKexDhInit(Packet packet) throws TransportLayerException {
-        byte[] e = null;
-        packet.getByte();
-        e = packet.getMPIntAsBytes();
-        if (!packet.endReached())
-            throw new TransportLayerException("Unexpected additional data found in Packet");
-
-        dh = DHFactory.createFromKexAlgoId(kexAlgo.nameId(),
-                Constant.SSH_ID_STRING,
-                transportLayer().peerIDString(),
-                ownKexInit,
-                peerKexInit,
-                side
-        );
-
-        dh.setE(e);
-
-        ByteArrayBuffer buffer = new ByteArrayBuffer();
-        //buffer.putPublicKey(hostKey.getPublic());
-        byte[] k_s = buffer.getCompactData();
-        buffer = dh.prepareBuffer();
     }
 
     public enum State {

@@ -37,7 +37,7 @@ public abstract class WithTransportLayer {
         this.logger = transportLayer.getLogger();
     }
 
-    protected TransportLayer transportLayer() {
+    public TransportLayer transportLayer() {
         return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
     }
 

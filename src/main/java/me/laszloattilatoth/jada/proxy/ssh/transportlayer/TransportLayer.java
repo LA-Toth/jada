@@ -21,6 +21,7 @@ import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.util.Logging;
+import org.apache.sshd.common.util.buffer.Buffer;
 
 import java.io.*;
 import java.lang.ref.WeakReference;
@@ -42,11 +43,11 @@ public abstract class TransportLayer {
     protected final Logger logger;
     protected final SocketChannel socketChannel;
     private final WeakReference<SshProxyThread> proxy;
-    private final KeyExchange kex;
     private final int macLength = 0;
     private final PacketHandler[] packetHandlers = new PacketHandler[256];
     private final String[] packetTypeNames = new String[256];
     private final List<Packet> replayPackets = new ArrayList<>();
+    protected KeyExchange kex;
     protected DataInputStream dataInputStream = null;
     protected DataOutputStream dataOutputStream = null;
     protected int skipPackets = 0;
@@ -57,11 +58,9 @@ public abstract class TransportLayer {
         this.logger = proxy.logger();
         this.socketChannel = socketChannel;
         this.side = side;
-        this.kex = new KeyExchange(this);
-        this.setupHandlers();
     }
 
-    private void setupHandlers() {
+    protected void setupHandlers() {
         for (int i = 0; i != packetHandlers.length; ++i)
             registerHandler(i, this::handleNotImplementedPacket, NOT_IMPLEMENTED_STR);
 
@@ -96,6 +95,8 @@ public abstract class TransportLayer {
     public String peerIDString() {
         return peerIDString;
     }
+
+    public KeyExchange kex() { return kex;}
 
     /**
      * Starts the layer, aka. send / receive SSH-2.0... string
@@ -247,6 +248,16 @@ public abstract class TransportLayer {
     public void writePacket(Packet packet) throws IOException {
         logger.info("Writing packet");
         packet.dump();
+        writePacketBytes(packet.array(), packet.wpos());
+    }
+
+    public void writePacket(Buffer packet) throws IOException {
+        logger.info("Writing packet");
+        Logger logger = Logging.logger();
+        byte packetType = packet.array()[0];
+        logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
+                packetType, packetType, packet.wpos()));
+        Logging.logBytes(logger, packet.array(), packet.wpos());
         writePacketBytes(packet.array(), packet.wpos());
     }
 

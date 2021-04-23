@@ -18,6 +18,7 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.ssh.helpers.NameListHelper;
 import me.laszloattilatoth.jada.util.Logging;
+import org.apache.sshd.common.util.GenericUtils;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
 import java.util.logging.Logger;
@@ -41,6 +42,17 @@ public class Packet extends ByteArrayBuffer {
 
     public byte packetType() {
         return array()[0];
+    }
+
+    public byte[] getCompactArray() {
+        int l = this.wpos();
+        if (l > 0) {
+            byte[] b = new byte[l];
+            System.arraycopy(this.array(), 0, b, 0, l);
+            return b;
+        } else {
+            return GenericUtils.EMPTY_BYTE_ARRAY;
+        }
     }
 
     public void dump() {
