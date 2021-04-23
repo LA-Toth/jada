@@ -261,7 +261,8 @@ public abstract class TransportLayer {
 
     private void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
         int withHeaders = payloadSize + 1 + 4;
-        int paddingLength = (withHeaders + 7) / 8 * 8 - withHeaders;
+        int paddingLength = (withHeaders + 15) / 16 * 16 - withHeaders;
+        System.out.println(String.format("Padding length %d with hdrs %d payloadsize %d", paddingLength, withHeaders, payloadSize));
 
         dataOutputStream.writeInt(payloadSize + paddingLength + 1);
         dataOutputStream.writeByte(paddingLength);
