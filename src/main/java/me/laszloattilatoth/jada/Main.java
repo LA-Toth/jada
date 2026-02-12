@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Laszlo Attila Toth
+ * Copyright 2021-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,14 @@ import me.laszloattilatoth.jada.proxy.socks.SocksMain;
 import me.laszloattilatoth.jada.proxy.ssh.SshMain;
 import me.laszloattilatoth.jada.util.Logging;
 import me.laszloattilatoth.jada.util.Sec;
-import org.apache.commons.cli.*;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.help.HelpFormatter;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -52,7 +59,7 @@ public class Main {
 
         options.addOption("c", "config", true, "Configuration file");
         options.addOption("V", "validate", false, "Validate only");
-        options.addOption(Option.builder("h").longOpt("help").desc("Print help").build());
+        options.addOption(Option.builder("h").longOpt("help").desc("Print help").get());
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -67,15 +74,19 @@ public class Main {
             String header = "A proxy";
             String footer = "\nPoC";
 
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("jsocks", header, options, footer, true);
+            HelpFormatter formatter = HelpFormatter.builder().get();
+            try {
+                formatter.printHelp("jada", header, options, footer, true);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             System.exit(0);
         }
 
         if (cmd.hasOption('c'))
             filename = cmd.getOptionValue('c');
         else {
-            System.err.println("Missing filename");
+            System.err.println("Missing filename. Use the '-h' option for more help");
             System.exit(1);
             return;
         }
