@@ -16,5 +16,7 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
 
-class DHGroup {
+import java.math.BigInteger;
+
+public record DHGroup(BigInteger generator, BigInteger modulus) {
 }
