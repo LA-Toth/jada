@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,16 +64,20 @@ public abstract class TransportLayer {
         for (int i = 0; i != packetHandlers.length; ++i)
             registerHandler(i, this::handleNotImplementedPacket, NOT_IMPLEMENTED_STR);
 
-        registerHandler(Constant.SSH_MSG_DISCONNECT, this::processMsgIgnore, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_DISCONNECT]);
-        registerHandler(Constant.SSH_MSG_IGNORE, this::processMsgIgnore, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_IGNORE]);
-        registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_UNIMPLEMENTED]);
-        registerHandler(Constant.SSH_MSG_DEBUG, this::processMsgIgnore, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_DEBUG]);
-        registerHandler(Constant.SSH_MSG_KEXINIT, kex::processMsgKexInit, Constant.SSH_MSG_NAMES[Constant.SSH_MSG_KEXINIT]);
+        registerHandler(Constant.SSH_MSG_DISCONNECT, this::processMsgIgnore);
+        registerHandler(Constant.SSH_MSG_IGNORE, this::processMsgIgnore);
+        registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented);
+        registerHandler(Constant.SSH_MSG_DEBUG, this::processMsgIgnore);
+        registerHandler(Constant.SSH_MSG_KEXINIT, kex::processMsgKexInit);
     }
 
     public void registerHandler(int packetType, PacketHandler handler, String packetTypeName) {
         packetHandlers[packetType] = handler;
         packetTypeNames[packetType] = packetTypeName;
+    }
+
+    public void registerHandler(int packetType, PacketHandler handler) {
+        registerHandler(packetType, handler, Constant.SSH_MSG_NAMES[packetType]);
     }
 
     public void unregisterHandler(int packetType) {
