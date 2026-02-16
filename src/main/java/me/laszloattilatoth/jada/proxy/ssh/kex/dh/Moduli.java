@@ -18,13 +18,12 @@ package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.List;
 
-public record Moduli(int size, BigInteger generator, BigInteger modulus) {
-    public static List<Moduli> modulii = new ArrayList<>();
-
+record Moduli(int size, BigInteger generator, BigInteger modulus) {
     private static final int MODULI_TYPE_SAFE = 2;
     private static final int MODULI_TEST_COMPOSITE = 0x01;
+
+    static ArrayList<Moduli> modulii = new ArrayList<>();
 
     static {
         // From OpenSSH 10.0p1
