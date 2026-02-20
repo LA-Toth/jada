@@ -31,9 +31,13 @@ import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.WithTransportLayer;
+import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.KeyPair;
+import java.security.MessageDigest;
+import java.util.Arrays;
 
 public abstract class KeyExchange extends WithTransportLayer {
     protected final KexInitPacket ownInitPacket = new KexInitPacket();
@@ -48,6 +52,8 @@ public abstract class KeyExchange extends WithTransportLayer {
     protected AbstractDHKeyExchange dhKex;
     protected byte[] ownKexInit;
     protected byte[] peerKexInit;
+
+    protected KexResult kexResult = null;
 
     public KeyExchange(TransportLayer transportLayer) {
         super(transportLayer);
@@ -219,6 +225,34 @@ public abstract class KeyExchange extends WithTransportLayer {
 
     public void newKeysHandler(Packet packet) throws TransportLayerException {
         transportLayer().unregisterHandler(Constant.SSH_MSG_NEWKEYS);
+    }
+
+    protected void setKexResult(byte[] k, byte[] h) {
+        kexResult = new  KexResult(k, h);
+    }
+
+    // Derive key material per RFC 4253 section 7.2
+    private byte[] deriveKey(MessageDigest hash, BigInteger K, byte[] H, byte id, byte[] sessionId, int neededBytes) throws Exception {
+        ByteArrayBuffer buffer = new ByteArrayBuffer();
+        buffer.putMPInt(K);
+        buffer.putRawBytes(H); // exchange hash H
+        buffer.putByte(id); // single char 'A'..'F'
+        buffer.putRawBytes(sessionId);                 // session identifier (first H)
+        byte[] result = hash.digest(buffer.getCompactData());
+
+        ByteArrayBuffer key = new ByteArrayBuffer();
+        key.putRawBytes(result);
+        while (key.wpos() < neededBytes) {
+            // K || H || previous
+            ByteArrayBuffer t = new ByteArrayBuffer();
+            t.putMPInt(K);
+            t.putRawBytes(H);
+            t.putBytes(key.getCompactData());
+            byte[] more = hash.digest(t.getCompactData());
+            key.putBytes(more);
+        }
+        byte[] outKey = key.getCompactData();
+        return Arrays.copyOf(outKey, neededBytes);
     }
 
     public enum State {

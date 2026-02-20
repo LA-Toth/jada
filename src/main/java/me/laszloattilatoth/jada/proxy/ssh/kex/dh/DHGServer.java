@@ -111,6 +111,8 @@ public class DHGServer extends AbstractDHKeyExchange {
 
         kex().transportLayer().writePacket(buffer);
 
+        kex().setKexResult(k, h);
+
         buffer.clear();
         buffer.putByte(Constant.SSH_MSG_NEWKEYS);
         kex().transportLayer().writePacket(buffer);
