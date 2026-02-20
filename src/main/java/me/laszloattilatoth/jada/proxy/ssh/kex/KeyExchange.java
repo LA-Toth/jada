@@ -23,6 +23,7 @@ import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Name;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
+import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgo;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgos;
 import me.laszloattilatoth.jada.proxy.ssh.kex.dh.mina.AbstractDHKeyExchange;
@@ -141,7 +142,7 @@ public abstract class KeyExchange extends WithTransportLayer {
                     newkeys.enc.name(),
                     newkeys.mac.name(),
                     "none", // FIXME
-                    c2s ? "client->server" : "server->client",
+                    LoggerHelper.formatSideStr(c2s),
                     side
             ));
         }
