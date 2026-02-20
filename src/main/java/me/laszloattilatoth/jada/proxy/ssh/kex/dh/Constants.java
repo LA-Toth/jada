@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Laszlo Attila Toth
+ * Copyright 2021-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,4 +128,8 @@ public class Constants {
                     "9558E447 5677E9AA 9E3050E2 765694DF C81F56E8 80B96E71" +
                     "60C980DD 98EDD3DF FFFFFFFF FFFFFFFF"
     ).replace(" ", ""), 16);
+
+    private Constants() {
+        throw new UnsupportedOperationException("No instance allowed");
+    }
 }

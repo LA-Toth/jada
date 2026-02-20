@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,5 +88,9 @@ public class NameListHelper {
 
         nameIds[nameIds.length - 1] = 0;
         return nameIds;
+    }
+
+    private NameListHelper() {
+        throw new UnsupportedOperationException("No instance allowed");
     }
 }
