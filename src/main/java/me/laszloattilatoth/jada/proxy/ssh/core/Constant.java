@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -197,5 +197,9 @@ public class Constant {
         SSH_DISCONNECT_NAMES[SSH_DISCONNECT_AUTH_CANCELLED_BY_USER] = "SSH_DISCONNECT_AUTH_CANCELLED_BY_USER";
         SSH_DISCONNECT_NAMES[SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE] = "SSH_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE";
         SSH_DISCONNECT_NAMES[SSH_DISCONNECT_ILLEGAL_USER_NAME] = "SSH_DISCONNECT_ILLEGAL_USER_NAME";
+    }
+
+    private Constant() {
+        throw new UnsupportedOperationException("No instance allowed");
     }
 }
