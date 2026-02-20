@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -109,7 +109,7 @@ public abstract class KeyExchange extends WithTransportLayer {
         peerInitPacket = initPacket;
         peerKexInit = packet.getCompactArray();
         chooseAlgos();
-        prepareDH(initPacket);
+        prepareDH();
     }
 
     // Validated/partially based on OpenSSH kex.c: kex_choose_conf
@@ -204,11 +204,11 @@ public abstract class KeyExchange extends WithTransportLayer {
         newKeys.setCompression(compAlg);
     }
 
-    private void prepareDH(KexInitPacket initPacket) throws TransportLayerException {
-        if (initPacket.follows && (
-                !initPacket.isFirstNameEquals(KexInitEntries.ENTRY_KEX_ALGOS, ownInitPacket)
-                        || !initPacket.isFirstNameEquals(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, ownInitPacket))) {
-            this.transportLayer().skipPackets(1);
+    private void prepareDH() throws TransportLayerException {
+        if (peerInitPacket.follows && (
+                !peerInitPacket.isFirstNameEquals(KexInitEntries.ENTRY_KEX_ALGOS, ownInitPacket)
+                        || !peerInitPacket.isFirstNameEquals(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, ownInitPacket))) {
+            this.transportLayer().skipPacket(Constant.SSH_MSG_KEXDH_INIT);
         }
     }
 
