@@ -96,6 +96,10 @@ public abstract class TransportLayer {
         skipPackets = count;
     }
 
+    public void skipPacket(byte packetType) {
+        // TODO: implement
+    }
+
     public String peerIDString() {
         return peerIDString;
     }
