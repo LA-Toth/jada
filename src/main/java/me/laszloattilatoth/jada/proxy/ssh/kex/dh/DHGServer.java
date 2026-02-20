@@ -1,6 +1,6 @@
 /*
  * Modifications of mina-sshd's  org.apache.sshd.server.kex.DHGServer:
- * Copyright 2021 Laszlo Attila Toth
+ * Copyright 2021-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License")
  *
@@ -36,15 +36,18 @@ import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
 import java.security.KeyPair;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 public class DHGServer extends AbstractDHKeyExchange {
 
     protected final DHFactory factory;
     protected AbstractDH dh;
+    protected final Logger logger;
 
     public DHGServer(me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange keyExchange, DHFactory factory) {
         super(keyExchange);
         this.factory = Objects.requireNonNull(factory, "No factory");
+        this.logger = keyExchange.transportLayer().getLogger();
     }
 
     @Override
@@ -62,6 +65,7 @@ public class DHGServer extends AbstractDHKeyExchange {
     }
 
     public void processKexDhInit(Buffer buffer) throws Exception {
+        logger.info("Processing DH init packet");
         byte[] e = updateE(buffer);
         dh.setF(e);
         k = dh.getK();
@@ -102,6 +106,13 @@ public class DHGServer extends AbstractDHKeyExchange {
         buffer.putBytes(k_s);
         buffer.putBytes(f);
         buffer.putBytes(sigH);
+
+        kex().registerNewKeysHandler();
+
+        kex().transportLayer().writePacket(buffer);
+
+        buffer.clear();
+        buffer.putByte(Constant.SSH_MSG_NEWKEYS);
         kex().transportLayer().writePacket(buffer);
     }
 }

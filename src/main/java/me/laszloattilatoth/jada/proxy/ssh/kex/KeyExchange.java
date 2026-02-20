@@ -212,6 +212,14 @@ public abstract class KeyExchange extends WithTransportLayer {
         }
     }
 
+    public void registerNewKeysHandler() {
+        transportLayer().registerHandler(Constant.SSH_MSG_NEWKEYS, this::newKeysHandler);
+    }
+
+    public void newKeysHandler(Packet packet) throws TransportLayerException {
+        transportLayer().unregisterHandler(Constant.SSH_MSG_NEWKEYS);
+    }
+
     public enum State {
         INITIAL,
         INITIAL_KEX_INIT_SENT,
