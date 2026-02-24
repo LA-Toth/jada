@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,12 @@ package me.laszloattilatoth.jada.proxy.ssh.kex;
 
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
+import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 
 public class KexInitPacket extends KexInitEntries {
     public static final int COOKIE_LEN = 16;
-
+    private static final SecureRandomWithByteArray secureRandom = new SecureRandomWithByteArray(COOKIE_LEN);
     public boolean follows = false;
 
     public void readFromPacket(Packet packet) {
@@ -55,8 +56,7 @@ public class KexInitPacket extends KexInitEntries {
 
     public void writeToPacket(Packet packet) {
         packet.putByte(Constant.SSH_MSG_KEXINIT);
-        for (int i = 0; i != COOKIE_LEN; ++i)
-            packet.putByte(0);  // FIXME: Security????
+        packet.putBytes(secureRandom.getSecureBytes());
         for (int i = 0; i != ENTRY_MAX; ++i) {
             packet.putString(entries[i].nameList());
         }
