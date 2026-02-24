@@ -30,6 +30,10 @@ public class NewKeys {
         enc = Ciphers.byNameWithId(encAlg);
     }
 
+    public long cipherKeyLen() {
+        return enc != null ? enc.keyLen() : 0;
+    }
+
     public long cipherAuthLen() {
         return enc != null ? enc.authLen() : 0;
     }

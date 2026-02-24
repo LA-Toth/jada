@@ -41,8 +41,8 @@ import java.util.logging.Logger;
 public class DHGServer extends AbstractDHKeyExchange {
 
     protected final DHFactory factory;
-    protected AbstractDH dh;
     protected final Logger logger;
+    protected AbstractDH dh;
 
     public DHGServer(me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange keyExchange, DHFactory factory) {
         super(keyExchange);
@@ -55,6 +55,12 @@ public class DHGServer extends AbstractDHKeyExchange {
         return "factory.getName()";
     }
 
+    /**
+     * @param v_s Server ID string
+     * @param v_c Client ID string
+     * @param i_s Server SSH_MSG_KEX_INIT packet
+     * @param i_c Client SSH_MSG_KEX_INIT packet
+     */
     @Override
     public void init(byte[] v_s, byte[] v_c, byte[] i_s, byte[] i_c) throws Exception {
         super.init(v_s, v_c, i_s, i_c);
@@ -110,8 +116,6 @@ public class DHGServer extends AbstractDHKeyExchange {
         kex().registerNewKeysHandler();
 
         kex().transportLayer().writePacket(buffer);
-
-        kex().setKexResult(k, h);
 
         buffer.clear();
         buffer.putByte(Constant.SSH_MSG_NEWKEYS);
