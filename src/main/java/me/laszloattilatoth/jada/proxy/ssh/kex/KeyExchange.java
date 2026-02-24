@@ -31,13 +31,9 @@ import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.WithTransportLayer;
-import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.security.KeyPair;
-import java.security.MessageDigest;
-import java.util.Arrays;
 
 public abstract class KeyExchange extends WithTransportLayer {
     protected final KexInitPacket ownInitPacket = new KexInitPacket();
@@ -53,7 +49,7 @@ public abstract class KeyExchange extends WithTransportLayer {
     protected byte[] ownKexInit;
     protected byte[] peerKexInit;
 
-    protected KexResult kexResult = null;
+    private KexOutput kexOutput;
 
     public KeyExchange(TransportLayer transportLayer) {
         super(transportLayer);
@@ -71,6 +67,14 @@ public abstract class KeyExchange extends WithTransportLayer {
         } catch (KexException e) {
             // cannot happen. FIXME.
         }
+    }
+
+    public NewKeys clientNewKeys() {
+        return side.isClient() ? this.newKeys[Constant.MODE_IN] : this.newKeys[Constant.MODE_OUT];
+    }
+
+    public NewKeys serverNewKeys() {
+        return side.isServer() ? this.newKeys[Constant.MODE_IN] : this.newKeys[Constant.MODE_OUT];
     }
 
     public State getState() {
@@ -227,32 +231,12 @@ public abstract class KeyExchange extends WithTransportLayer {
         transportLayer().unregisterHandler(Constant.SSH_MSG_NEWKEYS);
     }
 
-    protected void setKexResult(byte[] k, byte[] h) {
-        kexResult = new  KexResult(k, h);
+    public KexOutput getKexOutput() {
+        return kexOutput;
     }
 
-    // Derive key material per RFC 4253 section 7.2
-    private byte[] deriveKey(MessageDigest hash, BigInteger K, byte[] H, byte id, byte[] sessionId, int neededBytes) throws Exception {
-        ByteArrayBuffer buffer = new ByteArrayBuffer();
-        buffer.putMPInt(K);
-        buffer.putRawBytes(H); // exchange hash H
-        buffer.putByte(id); // single char 'A'..'F'
-        buffer.putRawBytes(sessionId);                 // session identifier (first H)
-        byte[] result = hash.digest(buffer.getCompactData());
-
-        ByteArrayBuffer key = new ByteArrayBuffer();
-        key.putRawBytes(result);
-        while (key.wpos() < neededBytes) {
-            // K || H || previous
-            ByteArrayBuffer t = new ByteArrayBuffer();
-            t.putMPInt(K);
-            t.putRawBytes(H);
-            t.putBytes(key.getCompactData());
-            byte[] more = hash.digest(t.getCompactData());
-            key.putBytes(more);
-        }
-        byte[] outKey = key.getCompactData();
-        return Arrays.copyOf(outKey, neededBytes);
+    protected void setKexOutput(KexOutput kexOutput) {
+        this.kexOutput = kexOutput;
     }
 
     public enum State {

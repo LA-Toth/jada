@@ -56,6 +56,10 @@ public class ServerKeyExchange extends KeyExchange {
             );
             packet.getByte();
             dhKex().processKexDhInit(packet);
+            transportLayer().kex().setKexOutput(new KexOutputFactory().create(dhKex().getHash(), dhKex().getK(),
+                    transportLayer().kex().ownKexInit,
+                    transportLayer().kex().ownKexInit,
+                    transportLayer().kex().clientNewKeys(), transportLayer().kex().serverNewKeys()));
         } catch (TransportLayerException e) {
             throw e;
         } catch (Exception e) {
