@@ -26,7 +26,7 @@ public abstract class WithKeyExchange {
         this.kex = new WeakReference<>(kex);
     }
 
-    protected KeyExchange kex() {
+    public KeyExchange kex() {
         return Objects.requireNonNull(kex.get(), "key exchange cannot be null");
     }
 }
