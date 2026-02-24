@@ -26,8 +26,14 @@ public class Macs {
     private static final Map<Integer, Mac> list = new HashMap<>();
 
     static {
-        put("hmac-sha1", 0, 0, 0);
-        put("hmac-md5", 0, 0, 0);
+        put("hmac-md5", 0, 16, 16);   // full 128-bit MD5
+        put("hmac-md5-96", 96, 16, 12);   // truncated to 96 bits
+
+        put("hmac-sha1", 0, 20, 20);   // full SHA-1
+        put("hmac-sha1-96", 96, 20, 12);   // truncated to 96 bits
+
+        put("hmac-sha2-256", 0, 32, 32);   // SHA-256
+        put("hmac-sha2-512", 0, 64, 64);   // SHA-512
     }
 
     public static Mac byId(int nameId) {
