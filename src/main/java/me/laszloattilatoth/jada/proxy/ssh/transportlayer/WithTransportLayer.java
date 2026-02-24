@@ -27,9 +27,9 @@ import java.util.Objects;
 import java.util.logging.Logger;
 
 public abstract class WithTransportLayer {
-    protected final WeakReference<TransportLayer> transportLayer;
     protected final Side side;
     protected final Logger logger;
+    private final WeakReference<TransportLayer> transportLayer;
 
     public WithTransportLayer(TransportLayer transportLayer) {
         this.transportLayer = new WeakReference<>(transportLayer);

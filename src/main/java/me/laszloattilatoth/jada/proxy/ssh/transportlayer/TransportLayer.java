@@ -104,7 +104,9 @@ public abstract class TransportLayer {
         return peerIDString;
     }
 
-    public KeyExchange kex() { return kex;}
+    public KeyExchange kex() {
+        return kex;
+    }
 
     /**
      * Starts the layer, aka. send / receive SSH-2.0... string
@@ -151,7 +153,7 @@ public abstract class TransportLayer {
         int data;
         boolean expectNL = false;
         int nonBannerLineCount = 0;
-        String line = null;
+        String line;
 
         for (; nonBannerLineCount < Constant.MAX_PRE_BANNER_LINES; ++nonBannerLineCount) {
             pkt.clear(false);
@@ -259,6 +261,9 @@ public abstract class TransportLayer {
         writePacketBytes(packet.array(), packet.wpos());
     }
 
+    /**
+     * Write packet as RFC 4253, 6.  Binary Packet Protocol
+     */
     public void writePacket(Buffer packet) throws IOException {
         logger.info("Writing packet");
         Logger logger = Logging.logger();
@@ -269,6 +274,9 @@ public abstract class TransportLayer {
         writePacketBytes(packet.array(), packet.wpos());
     }
 
+    /**
+     * Write packet as RFC 4253, 6.  Binary Packet Protocol
+     */
     public void writePacket(byte[] bytes, int payloadSize) throws IOException {
         logger.info("Writing packet");
         Logger logger = Logging.logger();
@@ -281,7 +289,7 @@ public abstract class TransportLayer {
     private void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
         int withHeaders = payloadSize + 1 + 4;
         int paddingLength = (withHeaders + 15) / 16 * 16 - withHeaders;
-        System.out.println(String.format("Padding length %d with hdrs %d payloadsize %d", paddingLength, withHeaders, payloadSize));
+        System.out.printf("Padding length %d with hdrs %d payloadsize %d%n", paddingLength, withHeaders, payloadSize);
 
         dataOutputStream.writeInt(payloadSize + paddingLength + 1);
         dataOutputStream.writeByte(paddingLength);
