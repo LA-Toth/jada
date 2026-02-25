@@ -55,8 +55,9 @@ public class KexInitPacket extends KexInitEntries {
     }
 
     public void writeToPacket(Packet packet) {
+        packet.wpos(0);
         packet.putByte(Constant.SSH_MSG_KEXINIT);
-        packet.putBytes(secureRandom.getSecureBytes());
+        packet.putRawBytes(secureRandom.getSecureBytes());
         for (int i = 0; i != ENTRY_MAX; ++i) {
             packet.putString(entries[i].nameList());
         }
