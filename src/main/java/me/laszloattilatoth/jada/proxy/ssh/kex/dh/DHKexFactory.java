@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Laszlo Attila Toth
+ * Copyright 2021-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
 package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
 
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgo;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmSpec;
 import me.laszloattilatoth.jada.proxy.ssh.kex.dh.mina.BuiltinDHFactories;
 
 import java.nio.charset.StandardCharsets;
 
 public class DHKexFactory {
-    public static DHGServer createServer(KeyExchange kex, KexAlgo kexAlgo, String ownSshIDString, String peerSshIdString, byte[] ownKexInit, byte[] peerKexInit) throws Exception {
-        DHGServer server = new DHGServer(kex, BuiltinDHFactories.resolveFactory(kexAlgo.name()));
+    public static DHGServer createServer(KeyExchange kex, KexAlgorithmSpec kexAlgorithmSpec, String ownSshIDString, String peerSshIdString, byte[] ownKexInit, byte[] peerKexInit) throws Exception {
+        DHGServer server = new DHGServer(kex, BuiltinDHFactories.resolveFactory(kexAlgorithmSpec.name()));
         server.init(
                 ownSshIDString.getBytes(StandardCharsets.UTF_8),
                 peerSshIdString.getBytes(StandardCharsets.UTF_8),

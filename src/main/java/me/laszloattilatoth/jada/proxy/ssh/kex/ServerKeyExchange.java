@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Laszlo Attila Toth
+ * Copyright 2021-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ public class ServerKeyExchange extends KeyExchange {
 
             hostKey = SecurityUtils.loadHostKey(hostKeyAlgName.name());
             dhKex = DHKexFactory.createServer(this,
-                    kexAlgo,
+                    kexAlgorithmSpec,
                     Constant.SSH_ID_STRING,
                     transportLayer().peerIDString(),
                     ownKexInit,

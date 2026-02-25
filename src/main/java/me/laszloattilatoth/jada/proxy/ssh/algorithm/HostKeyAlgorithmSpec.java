@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-package me.laszloattilatoth.jada.proxy.ssh.kex.algo;
+package me.laszloattilatoth.jada.proxy.ssh.algorithm;
 
-public record KexAlgo(String name, int nameId, Digest digestId) {
-    public enum Digest {
-        SHA1,
-        SHA256,
-        SHA512,
-    }
+public record HostKeyAlgorithmSpec(String name, int nameId) {
 }
