@@ -24,6 +24,7 @@ import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
+import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
 import java.io.*;
 import java.lang.ref.WeakReference;
@@ -54,6 +55,7 @@ public abstract class TransportLayer {
     private String peerIDString;
 
     private static final SecureRandom secureRandom = new SecureRandom();
+    boolean encryptedPacketMode = false;
 
     public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
         this.proxy = new WeakReference<>(proxy);
@@ -291,20 +293,59 @@ public abstract class TransportLayer {
 
     private void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
         int withHeaders = payloadSize + 1 + 4;
-        int blockSize = this.kex().outputBlockSize();
-        int minPadLen = withHeaders % blockSize;
-
-        int paddingLength = Math.max(blockSize, Math.max(minPadLen, secureRandom.nextInt(255))) / blockSize * blockSize;
+        int paddingLength = getPaddingLength(payloadSize);
         System.out.printf("Padding length %d with hdrs %d payloadsize %d packet len %d%n", paddingLength, withHeaders, payloadSize, payloadSize + paddingLength + 1);
 
-        dataOutputStream.writeInt(payloadSize + paddingLength + 1);
-        dataOutputStream.writeByte(paddingLength);
-        dataOutputStream.write(bytes, 0, payloadSize);
+        int totalLength = withHeaders + paddingLength;
 
-        SecureRandomWithByteArray secureRandomBA = new SecureRandomWithByteArray(payloadSize);
-        dataOutputStream.write(secureRandomBA.getSecureBytes());
+        ByteArrayBuffer buffer = new ByteArrayBuffer(totalLength);
+        buffer.putInt(payloadSize + paddingLength + 1);
+        buffer.putByte((byte) paddingLength);
+        buffer.putRawBytes(bytes, 0, payloadSize);
+
+        if (encryptedPacketMode) {
+            SecureRandomWithByteArray secureRandomBA = new SecureRandomWithByteArray(payloadSize);
+            buffer.putRawBytes(secureRandomBA.getSecureBytes());
+
+        } else {
+            for (int i = 0; i != paddingLength; ++i) {
+                buffer.putByte((byte) 0);
+            }
+        }
+
+        Logger logger = Logging.logger();
+        logger.info(() -> String.format("Raw packet dump follows without MAC; length='%d'", totalLength));
+        Logging.logBytes(logger, buffer.array(), totalLength);
+
+        dataOutputStream.write(buffer.array(), 0, totalLength);
+
         // FIXME: mac
         dataOutputStream.flush();
+    }
+
+    private int getPaddingLength(int payloadSize) {
+        int withHeaders = payloadSize + 1 + 4;
+        int blockSize = encryptedPacketMode ? this.kex().outputBlockSize() : 8;
+        int lessThenBlockSizeLen = withHeaders % blockSize;
+        int paddingLength = 0;
+        if (encryptedPacketMode) {
+            // TODO
+            paddingLength = Math.max(blockSize, Math.max(lessThenBlockSizeLen, secureRandom.nextInt(255))) / blockSize * blockSize;
+        } else {
+            // pointless to have any extra beyond to reach the block size
+            // as this is unencrypted
+            if (lessThenBlockSizeLen > 0) {
+                paddingLength = blockSize - lessThenBlockSizeLen;
+            }
+        }
+
+        if (withHeaders + paddingLength < blockSize) {
+            paddingLength += blockSize - withHeaders - paddingLength;
+        }
+        if (paddingLength < 4) {
+            paddingLength += blockSize;
+        }
+        return paddingLength;
     }
 
     private void handlePacketsInLoop() throws TransportLayerException {
