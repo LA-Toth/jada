@@ -20,6 +20,7 @@ import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
+import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
@@ -213,9 +214,12 @@ public abstract class TransportLayer {
         packet.dump();
         byte packetType = packet.packetType();
         boolean shouldSkip = skipPackets > 0;
-        logger.info(() -> String.format("%s packet; type='%d', hex_type='%x', type_name='%s', length='%d'",
-                (shouldSkip ? "Skipping" : "Processing"),
-                packetType, packetType, packetHandlerRegistry.packetTypeName(packetType), packet.wpos()));
+        logger.info(() ->
+                String.format("%s packet; type='%d', hex_type='%x', type_name='%s', predefined_type_name='%s', length='%d'",
+                        (shouldSkip ? "Skipping" : "Processing"),
+                        packetType, packetType,
+                        LoggerHelper.packetTypeName(packetType),
+                        packetHandlerRegistry.packetTypeName(packetType), packet.wpos()));
 
         if (shouldSkip) {
             --skipPackets;
