@@ -18,6 +18,7 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
+import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.util.Logging;
@@ -27,6 +28,7 @@ import java.io.*;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -52,6 +54,8 @@ public abstract class TransportLayer {
     protected DataOutputStream dataOutputStream = null;
     protected int skipPackets = 0;
     private String peerIDString;
+
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
         this.proxy = new WeakReference<>(proxy);
@@ -288,15 +292,18 @@ public abstract class TransportLayer {
 
     private void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
         int withHeaders = payloadSize + 1 + 4;
-        int paddingLength = (withHeaders + 15) / 16 * 16 - withHeaders;
-        System.out.printf("Padding length %d with hdrs %d payloadsize %d%n", paddingLength, withHeaders, payloadSize);
+        int blockSize = this.kex().outputBlockSize();
+        int minPadLen = withHeaders % blockSize;
+
+        int paddingLength = Math.max(blockSize, Math.max(minPadLen, secureRandom.nextInt(255))) / blockSize * blockSize;
+        System.out.printf("Padding length %d with hdrs %d payloadsize %d packet len %d%n", paddingLength, withHeaders, payloadSize, payloadSize + paddingLength + 1);
 
         dataOutputStream.writeInt(payloadSize + paddingLength + 1);
         dataOutputStream.writeByte(paddingLength);
         dataOutputStream.write(bytes, 0, payloadSize);
-        // FIXME: secure padding
-        for (int i = 0; i != paddingLength; ++i)
-            dataOutputStream.writeByte(0);
+
+        SecureRandomWithByteArray secureRandomBA = new SecureRandomWithByteArray(payloadSize);
+        dataOutputStream.write(secureRandomBA.getSecureBytes());
         // FIXME: mac
         dataOutputStream.flush();
     }
