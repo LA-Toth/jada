@@ -223,7 +223,7 @@ public abstract class KeyExchange extends WithTransportLayer {
         newKeys.setCompression(compAlg);
     }
 
-    private void prepareDH() throws TransportLayerException {
+    private void prepareDH() {
         if (peerInitPacket.follows && (
                 !peerInitPacket.isFirstNameEquals(KexInitEntries.ENTRY_KEX_ALGOS, ownInitPacket)
                         || !peerInitPacket.isFirstNameEquals(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, ownInitPacket))) {
@@ -235,7 +235,7 @@ public abstract class KeyExchange extends WithTransportLayer {
         transportLayer().getPacketHandlerRegistry().registerHandler(Constant.SSH_MSG_NEWKEYS, this::newKeysHandler);
     }
 
-    public void newKeysHandler(Packet packet) throws TransportLayerException {
+    public void newKeysHandler(Packet packet) {
         transportLayer().unregisterHandler(Constant.SSH_MSG_NEWKEYS);
     }
 
