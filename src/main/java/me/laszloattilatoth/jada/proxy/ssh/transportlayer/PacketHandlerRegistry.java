@@ -18,6 +18,7 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
+import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 
 import java.util.logging.Logger;
 
@@ -46,7 +47,10 @@ public class PacketHandlerRegistry {
     }
 
     public void registerHandler(int packetType, PacketHandler handler, String packetTypeName) {
-        logger.info(() -> String.format("Registering packet handler for %s (%d, 0x%x)", packetTypeName, packetType, packetType));
+        logger.info(() ->
+                String.format("Registering packet handler for %s as %s (%d, 0x%x)",
+                        LoggerHelper.packetTypeName(packetType),
+                        packetTypeName, packetType, packetType));
         packetHandlers[packetType] = handler;
         packetTypeNames[packetType] = packetTypeName;
     }

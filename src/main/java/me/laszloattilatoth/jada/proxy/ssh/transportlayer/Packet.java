@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
+import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.NameListHelper;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.GenericUtils;
@@ -57,8 +58,8 @@ public class Packet extends ByteArrayBuffer {
 
     public void dump() {
         Logger logger = Logging.logger();
-        logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
-                packetType(), packetType(), wpos()));
+        logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', predefined_type_name='%s', length='%d'",
+                packetType(), packetType(), LoggerHelper.packetTypeName(packetType()), wpos()));
         Logging.logBytes(logger, this.array(), this.wpos());
     }
 
