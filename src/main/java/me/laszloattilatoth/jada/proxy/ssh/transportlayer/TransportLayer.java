@@ -222,10 +222,11 @@ public abstract class TransportLayer {
             return;
         }
 
-        if (kex.getState() == KeyExchange.State.WAIT_FOR_OTHER_KEXINIT && packetType != Constant.SSH_MSG_KEXINIT)
+        if (false /* kex.getState() == KeyExchange.State.WAIT_FOR_OTHER_KEXINIT && packetType != Constant.SSH_MSG_KEXINIT */) {
             storePacket(packet);
-        else
+        } else {
             packetHandlerRegistry.handlePacket(packetType, packet);
+        }
     }
 
     /**
