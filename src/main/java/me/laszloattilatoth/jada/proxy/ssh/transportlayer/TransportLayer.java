@@ -76,6 +76,7 @@ public abstract class TransportLayer {
     }
 
     public void registerHandler(int packetType, PacketHandler handler, String packetTypeName) {
+        logger.info(() -> String.format("Registering packet handler for %s (%d, 0x%x)", packetTypeName, packetType, packetType));
         packetHandlers[packetType] = handler;
         packetTypeNames[packetType] = packetTypeName;
     }
