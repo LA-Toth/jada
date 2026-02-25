@@ -77,6 +77,14 @@ public abstract class KeyExchange extends WithTransportLayer {
         return side.isServer() ? this.newKeys[Constant.MODE_IN] : this.newKeys[Constant.MODE_OUT];
     }
 
+    public int outputBlockSize() {
+        if (this.newKeys[Constant.MODE_OUT] == null) {
+            return 8;
+        } else {
+            return (int) this.newKeys[Constant.MODE_OUT].enc.blockSize();
+        }
+    }
+
     public State getState() {
         return state;
     }
