@@ -17,15 +17,15 @@
 package me.laszloattilatoth.jada.proxy.ssh.kex;
 
 import me.laszloattilatoth.jada.proxy.ssh.Options;
-import me.laszloattilatoth.jada.proxy.ssh.algorithm.HostKeyAlgorithmSpec;
 import me.laszloattilatoth.jada.proxy.ssh.algorithm.HostKeyAlgorithmRegistry;
+import me.laszloattilatoth.jada.proxy.ssh.algorithm.HostKeyAlgorithmSpec;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Name;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmSpec;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmRegistry;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmSpec;
 import me.laszloattilatoth.jada.proxy.ssh.kex.dh.mina.AbstractDHKeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
@@ -36,37 +36,22 @@ import java.io.IOException;
 import java.security.KeyPair;
 
 public abstract class KeyExchange extends WithTransportLayer {
-    protected final KexInitPacket ownInitPacket = new KexInitPacket();
     protected final NewKeys[] newKeys = new NewKeys[Constant.MODE_MAX];
-    protected State state = State.INITIAL;
-    protected KexInitPacket peerInitPacket;
+    protected final KexState kexState;
+    //protected State state = State.INITIAL;
     protected NameWithId kexName;
     protected NameWithId hostKeyAlgName;
     protected KexAlgorithmSpec kexAlgorithmSpec = null;
     protected HostKeyAlgorithmSpec hostHostKeyAlgorithmSpec = null;
     protected KeyPair hostKey;
     protected AbstractDHKeyExchange dhKex;
-    protected byte[] ownKexInit;
-    protected byte[] peerKexInit;
 
     private KexOutput kexOutput;
 
     public KeyExchange(TransportLayer transportLayer) {
         super(transportLayer);
         Options.SideOptions options = transportLayer.proxy().options().sideOptions(side);
-
-        try {
-            this.ownInitPacket.set(KexInitEntries.ENTRY_KEX_ALGOS, NameListWithIds.create(options.kexAlgorithms));
-            this.ownInitPacket.set(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, NameListWithIds.create(options.hostkeyAlgorithms));
-            this.ownInitPacket.set(KexInitEntries.ENTRY_ENC_ALGOS_C2S, NameListWithIds.create(options.encryptionAlgorithms));
-            this.ownInitPacket.set(KexInitEntries.ENTRY_ENC_ALGOS_S2C, this.ownInitPacket.get(KexInitEntries.ENTRY_ENC_ALGOS_C2S));
-            this.ownInitPacket.set(KexInitEntries.ENTRY_MAC_ALGOS_C2S, NameListWithIds.create(options.macAlgorithms));
-            this.ownInitPacket.set(KexInitEntries.ENTRY_MAC_ALGOS_S2C, this.ownInitPacket.get(KexInitEntries.ENTRY_MAC_ALGOS_C2S));
-            this.ownInitPacket.set(KexInitEntries.ENTRY_COMP_ALGOS_C2S, NameListWithIds.create(options.compressionAlgorithms));
-            this.ownInitPacket.set(KexInitEntries.ENTRY_COMP_ALGOS_S2C, this.ownInitPacket.get(KexInitEntries.ENTRY_COMP_ALGOS_C2S));
-        } catch (KexException e) {
-            // cannot happen. FIXME.
-        }
+        kexState = new KexState(options);
     }
 
     public NewKeys clientNewKeys() {
@@ -85,9 +70,11 @@ public abstract class KeyExchange extends WithTransportLayer {
         }
     }
 
+    /*
     public State getState() {
         return state;
     }
+    */
 
     public KeyPair getHostKey() {
         return hostKey;
@@ -98,14 +85,14 @@ public abstract class KeyExchange extends WithTransportLayer {
     }
 
     public void sendInitialMsgKexInit() throws KexException {
-        if (ownKexInit == null) {
+        if (kexState.getOwnKexInit() == null) {
             Packet pkt = new Packet();
-            ownInitPacket.writeToPacket(pkt);
-            ownKexInit = pkt.getCompactData();
+            kexState.getOwnInitPacket().writeToPacket(pkt);
+            kexState.setOwnKexInit(pkt.getCompactData());
         }
 
         try {
-            transportLayer().writePacket(ownKexInit, ownKexInit.length);
+            transportLayer().writePacket(kexState.getOwnKexInit(), kexState.getOwnKexInit().length);
         } catch (IOException e) {
             logger.severe(() -> String.format("Unable to send SSH_MSG_KEXINIT; error='%s'", e.getMessage()));
             throw new KexException(e.getMessage());
@@ -125,16 +112,16 @@ public abstract class KeyExchange extends WithTransportLayer {
         }
 
         // TODO: rekeying - send our own kex packet
-        peerInitPacket = initPacket;
-        peerKexInit = packet.getCompactArray();
+        kexState.setPeerInitPacket(initPacket);
+        kexState.setPeerKexInit(packet.getCompactArray());
         chooseAlgos();
         prepareDH();
     }
 
     // Validated/partially based on OpenSSH kex.c: kex_choose_conf
     private void chooseAlgos() throws TransportLayerException {
-        KexInitEntries client = side.isClient() ? peerInitPacket : ownInitPacket;
-        KexInitEntries server = side.isClient() ? ownInitPacket : peerInitPacket;
+        KexInitEntries client = side.isClient() ? kexState.getPeerInitPacket() : kexState.getOwnInitPacket();
+        KexInitEntries server = side.isClient() ? kexState.getOwnInitPacket() : kexState.getPeerInitPacket();
 
         // not checking ext_info_c - RFC 8308
 
@@ -224,9 +211,9 @@ public abstract class KeyExchange extends WithTransportLayer {
     }
 
     private void prepareDH() {
-        if (peerInitPacket.follows && (
-                !peerInitPacket.isFirstNameEquals(KexInitEntries.ENTRY_KEX_ALGOS, ownInitPacket)
-                        || !peerInitPacket.isFirstNameEquals(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, ownInitPacket))) {
+        if (kexState.getPeerInitPacket().follows && (
+                !kexState.getPeerInitPacket().isFirstNameEquals(KexInitEntries.ENTRY_KEX_ALGOS, kexState.getOwnInitPacket())
+                        || !kexState.getPeerInitPacket().isFirstNameEquals(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, kexState.getOwnInitPacket()))) {
             this.transportLayer().skipPacket(Constant.SSH_MSG_KEXDH_INIT);
         }
     }
@@ -247,6 +234,7 @@ public abstract class KeyExchange extends WithTransportLayer {
         this.kexOutput = kexOutput;
     }
 
+    /*
     public enum State {
         INITIAL,
         INITIAL_KEX_INIT_SENT,
@@ -254,5 +242,59 @@ public abstract class KeyExchange extends WithTransportLayer {
         DROP_GUESSED_PACKET,    // the next packet should be dropped
         AFTER_KEX,
         KEX,
+    }
+    */
+
+    protected static class KexState {
+        protected final KexInitPacket ownInitPacket = new KexInitPacket();
+
+        public KexInitPacket getOwnInitPacket() {
+            return ownInitPacket;
+        }
+
+        protected KexInitPacket peerInitPacket;
+
+        public KexInitPacket getPeerInitPacket() {
+            return peerInitPacket;
+        }
+
+        public void setPeerInitPacket(KexInitPacket peerInitPacket) {
+            this.peerInitPacket = peerInitPacket;
+        }
+
+        protected byte[] ownKexInit;
+
+        public byte[] getOwnKexInit() {
+            return ownKexInit;
+        }
+
+        public void setOwnKexInit(byte[] ownKexInit) {
+            this.ownKexInit = ownKexInit;
+        }
+
+        protected byte[] peerKexInit;
+
+        public byte[] getPeerKexInit() {
+            return peerKexInit;
+        }
+
+        public void setPeerKexInit(byte[] peerKexInit) {
+            this.peerKexInit = peerKexInit;
+        }
+
+        public KexState(Options.SideOptions options) {
+            try {
+                ownInitPacket.set(KexInitEntries.ENTRY_KEX_ALGOS, NameListWithIds.create(options.kexAlgorithms));
+                ownInitPacket.set(KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, NameListWithIds.create(options.hostkeyAlgorithms));
+                ownInitPacket.set(KexInitEntries.ENTRY_ENC_ALGOS_C2S, NameListWithIds.create(options.encryptionAlgorithms));
+                ownInitPacket.set(KexInitEntries.ENTRY_ENC_ALGOS_S2C, ownInitPacket.get(KexInitEntries.ENTRY_ENC_ALGOS_C2S));
+                ownInitPacket.set(KexInitEntries.ENTRY_MAC_ALGOS_C2S, NameListWithIds.create(options.macAlgorithms));
+                ownInitPacket.set(KexInitEntries.ENTRY_MAC_ALGOS_S2C, ownInitPacket.get(KexInitEntries.ENTRY_MAC_ALGOS_C2S));
+                ownInitPacket.set(KexInitEntries.ENTRY_COMP_ALGOS_C2S, NameListWithIds.create(options.compressionAlgorithms));
+                ownInitPacket.set(KexInitEntries.ENTRY_COMP_ALGOS_S2C, ownInitPacket.get(KexInitEntries.ENTRY_COMP_ALGOS_C2S));
+            } catch (KexException e) {
+                // cannot happen. FIXME.
+            }
+        }
     }
 }

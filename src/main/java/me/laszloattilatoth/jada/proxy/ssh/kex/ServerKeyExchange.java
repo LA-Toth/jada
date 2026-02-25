@@ -45,21 +45,20 @@ public class ServerKeyExchange extends KeyExchange {
 
     public void processKexDhInit(Packet packet) throws TransportLayerException {
         try {
-
             hostKey = SecurityUtils.loadHostKey(hostKeyAlgName.name());
             dhKex = DHKexFactory.createServer(this,
                     kexAlgorithmSpec,
                     Constant.SSH_ID_STRING,
                     transportLayer().peerIDString(),
-                    ownKexInit,
-                    peerKexInit
+                    kexState.getOwnKexInit(),
+                    kexState.getPeerKexInit()
             );
             packet.getByte();
             dhKex().processKexDhInit(packet);
-            transportLayer().kex().setKexOutput(new KexOutputFactory().create(dhKex().getHash(), dhKex().getK(),
-                    transportLayer().kex().ownKexInit,
-                    transportLayer().kex().ownKexInit,
-                    transportLayer().kex().clientNewKeys(), transportLayer().kex().serverNewKeys()));
+            setKexOutput(new KexOutputFactory().create(dhKex().getHash(), dhKex().getK(),
+                    kexState.getOwnKexInit(),
+                    kexState.getOwnKexInit(),
+                    clientNewKeys(), serverNewKeys()));
         } catch (TransportLayerException e) {
             throw e;
         } catch (Exception e) {
