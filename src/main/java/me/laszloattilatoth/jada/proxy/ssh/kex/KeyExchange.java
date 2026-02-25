@@ -232,7 +232,7 @@ public abstract class KeyExchange extends WithTransportLayer {
     }
 
     public void registerNewKeysHandler() {
-        transportLayer().registerHandler(Constant.SSH_MSG_NEWKEYS, this::newKeysHandler);
+        transportLayer().getPacketHandlerRegistry().registerHandler(Constant.SSH_MSG_NEWKEYS, this::newKeysHandler);
     }
 
     public void newKeysHandler(Packet packet) throws TransportLayerException {

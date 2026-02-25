@@ -39,15 +39,12 @@ import java.util.logging.Logger;
  * Based on RFC 4253 - The Secure Shell (SSH) Transport Layer Protocol
  */
 public abstract class TransportLayer {
-    private static final String UNKNOWN_STR = "(unknown)";
-    private static final String NOT_IMPLEMENTED_STR = "(not implemented)";
     public final Side side;
     protected final Logger logger;
     protected final SocketChannel socketChannel;
     private final WeakReference<SshProxyThread> proxy;
     private final int macLength = 0;
-    private final PacketHandler[] packetHandlers = new PacketHandler[256];
-    private final String[] packetTypeNames = new String[256];
+    private final PacketHandlerRegistry packetHandlerRegistry;
     private final List<Packet> replayPackets = new ArrayList<>();
     protected KeyExchange kex;
     protected DataInputStream dataInputStream = null;
@@ -62,31 +59,27 @@ public abstract class TransportLayer {
         this.logger = proxy.logger();
         this.socketChannel = socketChannel;
         this.side = side;
+        this.packetHandlerRegistry = new PacketHandlerRegistry(logger, side, this::handleNotImplementedPacket);
     }
 
     protected void setupHandlers() {
-        for (int i = 0; i != packetHandlers.length; ++i)
-            registerHandler(i, this::handleNotImplementedPacket, NOT_IMPLEMENTED_STR);
+        packetHandlerRegistry.registerHandler(Constant.SSH_MSG_DISCONNECT, this::processMsgIgnore);
+        packetHandlerRegistry.registerHandler(Constant.SSH_MSG_IGNORE, this::processMsgIgnore);
+        packetHandlerRegistry.registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented);
+        packetHandlerRegistry.registerHandler(Constant.SSH_MSG_DEBUG, this::processMsgIgnore);
+        packetHandlerRegistry.registerHandler(Constant.SSH_MSG_KEXINIT, kex::processMsgKexInit);
+    }
 
-        registerHandler(Constant.SSH_MSG_DISCONNECT, this::processMsgIgnore);
-        registerHandler(Constant.SSH_MSG_IGNORE, this::processMsgIgnore);
-        registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented);
-        registerHandler(Constant.SSH_MSG_DEBUG, this::processMsgIgnore);
-        registerHandler(Constant.SSH_MSG_KEXINIT, kex::processMsgKexInit);
+    public PacketHandlerRegistry getPacketHandlerRegistry() {
+        return packetHandlerRegistry;
     }
 
     public void registerHandler(int packetType, PacketHandler handler, String packetTypeName) {
-        logger.info(() -> String.format("Registering packet handler for %s (%d, 0x%x)", packetTypeName, packetType, packetType));
-        packetHandlers[packetType] = handler;
-        packetTypeNames[packetType] = packetTypeName;
-    }
-
-    public void registerHandler(int packetType, PacketHandler handler) {
-        registerHandler(packetType, handler, Constant.SSH_MSG_NAMES[packetType]);
+        packetHandlerRegistry.registerHandler(packetType, handler, packetTypeName);
     }
 
     public void unregisterHandler(int packetType) {
-        registerHandler(packetType, this::handleNotImplementedPacket, NOT_IMPLEMENTED_STR);
+        packetHandlerRegistry.unregisterHandler(packetType);
     }
 
     public final Logger getLogger() {
@@ -222,7 +215,7 @@ public abstract class TransportLayer {
         boolean shouldSkip = skipPackets > 0;
         logger.info(() -> String.format("%s packet; type='%d', hex_type='%x', type_name='%s', length='%d'",
                 (shouldSkip ? "Skipping" : "Processing"),
-                packetType, packetType, packetTypeNames[packetType], packet.wpos()));
+                packetType, packetType, packetHandlerRegistry.packetTypeName(packetType), packet.wpos()));
 
         if (shouldSkip) {
             --skipPackets;
@@ -232,7 +225,7 @@ public abstract class TransportLayer {
         if (kex.getState() == KeyExchange.State.WAIT_FOR_OTHER_KEXINIT && packetType != Constant.SSH_MSG_KEXINIT)
             storePacket(packet);
         else
-            packetHandlers[packetType].handle(packet);
+            packetHandlerRegistry.handlePacket(packetType, packet);
     }
 
     /**
