@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,29 +17,29 @@
 package me.laszloattilatoth.jada.proxy.ssh.kex;
 
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algo.Cipher;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algo.Ciphers;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algo.Mac;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algo.Macs;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherRegistry;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.MacSpec;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.MacRegistry;
 
 public class NewKeys {
-    public Cipher enc;
-    public Mac mac;
+    public CipherSpec cipherSpec;
+    public MacSpec macSpec;
 
     public void setEncryption(NameWithId encAlg) {
-        enc = Ciphers.byNameWithId(encAlg);
+        cipherSpec = CipherRegistry.byNameWithId(encAlg);
     }
 
     public long cipherKeyLen() {
-        return enc != null ? enc.keyLen() : 0;
+        return cipherSpec != null ? cipherSpec.keyLen() : 0;
     }
 
     public long cipherAuthLen() {
-        return enc != null ? enc.authLen() : 0;
+        return cipherSpec != null ? cipherSpec.authLen() : 0;
     }
 
     public void setMac(NameWithId macAlg) {
-        mac = Macs.byNameWithId(macAlg);
+        macSpec = MacRegistry.byNameWithId(macAlg);
     }
 
     public void setCompression(NameWithId compAlg) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package me.laszloattilatoth.jada.proxy.ssh.kex.algo;
+package me.laszloattilatoth.jada.proxy.ssh.algorithm;
 
 import me.laszloattilatoth.jada.proxy.ssh.core.Name;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
@@ -22,21 +22,20 @@ import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KexAlgos {
-    private static final Map<Integer, KexAlgo> list = new HashMap<>();
+public class HostKeyAlgorithmRegistry {
+    private static final Map<Integer, HostKeyAlgorithmSpec> list = new HashMap<>();
 
     static {
-        put("diffie-hellman-group1-sha1", KexAlgo.Digest.SHA1);
-        put("diffie-hellman-group14-sha1", KexAlgo.Digest.SHA1);
-        put("diffie-hellman-group14-sha256", KexAlgo.Digest.SHA256);
+        put("ssh-rsa");
+        put("ssh-dss");
     }
 
-    public static KexAlgo byId(int nameId) {
+    public static HostKeyAlgorithmSpec byId(int nameId) {
         return list.get(nameId);
     }
 
-    public static KexAlgo byName(String name) {
-        for (KexAlgo c : list.values()) {
+    public static HostKeyAlgorithmSpec byName(String name) {
+        for (HostKeyAlgorithmSpec c : list.values()) {
             if (c.name().equals(name)) {
                 return c;
             }
@@ -45,12 +44,12 @@ public class KexAlgos {
         return null;
     }
 
-    public static KexAlgo byNameWithId(NameWithId nameWithId) {
+    public static HostKeyAlgorithmSpec byNameWithId(NameWithId nameWithId) {
         return byId(nameWithId.nameId());
     }
 
-    private static void put(String name, KexAlgo.Digest digest) {
+    private static void put(String name) {
         int nameId = Name.getNameId(name);
-        list.put(nameId, new KexAlgo(name, nameId, digest));
+        list.put(nameId, new HostKeyAlgorithmSpec(name, nameId));
     }
 }

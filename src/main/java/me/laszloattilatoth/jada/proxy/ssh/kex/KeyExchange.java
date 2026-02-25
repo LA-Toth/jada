@@ -17,15 +17,15 @@
 package me.laszloattilatoth.jada.proxy.ssh.kex;
 
 import me.laszloattilatoth.jada.proxy.ssh.Options;
-import me.laszloattilatoth.jada.proxy.ssh.algo.KeyAlgo;
-import me.laszloattilatoth.jada.proxy.ssh.algo.KeyAlgos;
+import me.laszloattilatoth.jada.proxy.ssh.algorithm.HostKeyAlgorithmSpec;
+import me.laszloattilatoth.jada.proxy.ssh.algorithm.HostKeyAlgorithmRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Name;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgo;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algo.KexAlgos;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmSpec;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.kex.dh.mina.AbstractDHKeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
@@ -42,8 +42,8 @@ public abstract class KeyExchange extends WithTransportLayer {
     protected KexInitPacket peerInitPacket;
     protected NameWithId kexName;
     protected NameWithId hostKeyAlgName;
-    protected KexAlgo kexAlgo = null;
-    protected KeyAlgo hostKeyAlgo = null;
+    protected KexAlgorithmSpec kexAlgorithmSpec = null;
+    protected HostKeyAlgorithmSpec hostHostKeyAlgorithmSpec = null;
     protected KeyPair hostKey;
     protected AbstractDHKeyExchange dhKex;
     protected byte[] ownKexInit;
@@ -81,7 +81,7 @@ public abstract class KeyExchange extends WithTransportLayer {
         if (this.newKeys[Constant.MODE_OUT] == null) {
             return 8;
         } else {
-            return (int) this.newKeys[Constant.MODE_OUT].enc.blockSize();
+            return (int) this.newKeys[Constant.MODE_OUT].cipherSpec.blockSize();
         }
     }
 
@@ -157,8 +157,8 @@ public abstract class KeyExchange extends WithTransportLayer {
 
             logger.fine(() -> String.format("KEX algo match; kex='%s', cipher='%s', MAC='%s', compression='%s', direction='%s', side='%s'",
                     kexName.name(),
-                    newkeys.enc.name(),
-                    newkeys.mac.name(),
+                    newkeys.cipherSpec.name(),
+                    newkeys.macSpec.name(),
                     "none", // FIXME
                     LoggerHelper.formatSideStr(c2s),
                     side
@@ -168,8 +168,8 @@ public abstract class KeyExchange extends WithTransportLayer {
 
     private void chooseHostKeyAlg(KexInitEntries client, KexInitEntries server) throws TransportLayerException {
         hostKeyAlgName = chooseAlg(client, server, KexInitEntries.ENTRY_SERVER_HOST_KEY_ALG, "No matching HostKey algorithm");
-        hostKeyAlgo = KeyAlgos.byNameWithId(hostKeyAlgName);
-        if (hostKeyAlgo == null) {
+        hostHostKeyAlgorithmSpec = HostKeyAlgorithmRegistry.byNameWithId(hostKeyAlgName);
+        if (hostHostKeyAlgorithmSpec == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated host key algorithm is not supported");
             throw new KexException(String.format("Negotiated host key algorithm is not supported; algo='%s'", hostKeyAlgName.name()));
         }
@@ -177,8 +177,8 @@ public abstract class KeyExchange extends WithTransportLayer {
 
     private void chooseKex(KexInitEntries client, KexInitEntries server) throws TransportLayerException {
         kexName = chooseAlg(client, server, KexInitEntries.ENTRY_KEX_ALGOS, "No matching KEX algorithm");
-        kexAlgo = KexAlgos.byNameWithId(kexName);
-        if (kexAlgo == null) {
+        kexAlgorithmSpec = KexAlgorithmRegistry.byNameWithId(kexName);
+        if (kexAlgorithmSpec == null) {
             sendDisconnectMsg(Constant.SSH_DISCONNECT_KEY_EXCHANGE_FAILED, "Internal error, Negotiated KEX algorithm is not supported");
             throw new KexException(String.format("v; algo='%s'", kexName.name()));
         }

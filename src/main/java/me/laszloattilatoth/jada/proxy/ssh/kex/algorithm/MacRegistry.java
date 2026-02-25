@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Laszlo Attila Toth
+ * Copyright 2020-2026 Laszlo Attila Toth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package me.laszloattilatoth.jada.proxy.ssh.kex.algo;
+package me.laszloattilatoth.jada.proxy.ssh.kex.algorithm;
 
 import me.laszloattilatoth.jada.proxy.ssh.core.Name;
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
@@ -22,8 +22,8 @@ import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Macs {
-    private static final Map<Integer, Mac> list = new HashMap<>();
+public class MacRegistry {
+    private static final Map<Integer, MacSpec> list = new HashMap<>();
 
     static {
         put("hmac-md5", 0, 16, 16);   // full 128-bit MD5
@@ -36,12 +36,12 @@ public class Macs {
         put("hmac-sha2-512", 0, 64, 64);   // SHA-512
     }
 
-    public static Mac byId(int nameId) {
+    public static MacSpec byId(int nameId) {
         return list.get(nameId);
     }
 
-    public static Mac byName(String name) {
-        for (Mac m : list.values()) {
+    public static MacSpec byName(String name) {
+        for (MacSpec m : list.values()) {
             if (m.name().equals(name)) {
                 return m;
             }
@@ -50,12 +50,12 @@ public class Macs {
         return null;
     }
 
-    public static Mac byNameWithId(NameWithId nameWithId) {
+    public static MacSpec byNameWithId(NameWithId nameWithId) {
         return byId(nameWithId.nameId());
     }
 
     private static void put(String name, int truncateBits, int keyLen, int len) {
         int nameId = Name.getNameId(name);
-        list.put(nameId, new Mac(name, nameId, truncateBits, keyLen, len));
+        list.put(nameId, new MacSpec(name, nameId, truncateBits, keyLen, len));
     }
 }
