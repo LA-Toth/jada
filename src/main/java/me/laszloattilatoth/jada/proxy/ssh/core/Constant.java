@@ -116,6 +116,14 @@ public class Constant {
     public static final byte SSH_MSG_USERAUTH_INFO_REQUEST = 60;
     public static final byte SSH_MSG_USERAUTH_INFO_RESPONSE = 61;
 
+    // RFC 4419  Diffie-Hellman Group Exchange for the Secure Shell (SSH) Transport Layer Protocol
+    // 5.  Summary of Message Numbers
+    public static final byte SSH_MSG_KEX_DH_GEX_REQUEST_OLD = 30;
+    public static final byte SSH_MSG_KEX_DH_GEX_REQUEST = 34;
+    public static final byte SSH_MSG_KEX_DH_GEX_GROUP = 31;
+    public static final byte SSH_MSG_KEX_DH_GEX_INIT = 32;
+    public static final byte SSH_MSG_KEX_DH_GEX_REPLY = 33;
+
     public static final String[] SSH_MSG_NAMES = new String[256];
 
     // RFC 2450
