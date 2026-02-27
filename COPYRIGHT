@@ -1,0 +1,7 @@
+Copyright 2021 Laszlo Attila Toth
+
+A few files are copied from Apache's mina-sshd project,
+and updated as needed.
+
+Both the copied files and the current project use Apache 2.0 license.
+See LICENSE for details.
