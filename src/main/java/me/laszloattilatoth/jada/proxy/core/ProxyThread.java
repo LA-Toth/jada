@@ -11,7 +11,7 @@ import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public abstract class ProxyThread extends Thread {
+public abstract class ProxyThread extends Thread implements Proxy {
     protected final int threadId;
     protected SocketChannel socketChannel;
     protected ProxyConfig config;

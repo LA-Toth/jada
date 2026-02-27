@@ -3,6 +3,7 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
+import me.laszloattilatoth.jada.proxy.core.LoggerHolder;
 import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
@@ -27,7 +28,7 @@ import java.util.logging.Logger;
 /**
  * Based on RFC 4253 - The Secure Shell (SSH) Transport Layer Protocol
  */
-public abstract class TransportLayer {
+public abstract class TransportLayer implements LoggerHolder {
     public final Side side;
     protected final Logger logger;
     protected final SocketChannel socketChannel;
@@ -72,7 +73,7 @@ public abstract class TransportLayer {
         packetHandlerRegistry.unregisterHandler(packetType);
     }
 
-    public final Logger getLogger() {
+    public Logger logger() {
         return logger;
     }
 

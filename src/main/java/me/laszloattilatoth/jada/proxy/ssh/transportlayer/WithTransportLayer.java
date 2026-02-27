@@ -3,6 +3,7 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
+import me.laszloattilatoth.jada.proxy.core.LoggerHolder;
 import me.laszloattilatoth.jada.proxy.ssh.Options;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
@@ -13,7 +14,7 @@ import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.logging.Logger;
 
-public abstract class WithTransportLayer {
+public abstract class WithTransportLayer implements LoggerHolder {
     protected final Side side;
     protected final Logger logger;
     private final WeakReference<TransportLayer> transportLayer;
@@ -21,11 +22,15 @@ public abstract class WithTransportLayer {
     public WithTransportLayer(TransportLayer transportLayer) {
         this.transportLayer = new WeakReference<>(transportLayer);
         this.side = transportLayer.side;
-        this.logger = transportLayer.getLogger();
+        this.logger = transportLayer.logger();
     }
 
     public TransportLayer transportLayer() {
         return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
+    }
+
+    public Logger logger() {
+        return logger;
     }
 
     protected Options options() {
