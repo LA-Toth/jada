@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.logging.Logger;
 
 public class DHGServer extends AbstractDHKeyExchange {
-
     protected final DHFactory factory;
     protected final Logger logger;
     protected AbstractDH dh;
@@ -25,7 +24,7 @@ public class DHGServer extends AbstractDHKeyExchange {
     public DHGServer(me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange keyExchange, DHFactory factory) {
         super(keyExchange);
         this.factory = Objects.requireNonNull(factory, "No factory");
-        this.logger = keyExchange.transportLayer().getLogger();
+        this.logger = keyExchange.transportLayer().logger();
     }
 
     @Override
