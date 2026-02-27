@@ -21,28 +21,49 @@ so I kept it with a few trivial others, namely:
   * has an explicit config file (not Python, but YAML)
 
 The protocol details are publicly available, like SOCKS,
-or SSH (see [JSSH](https://github.com/LA-Toth/jsocks))
+or SSH.
 
 
 Setup
 -----
 
-The code requires Java records fully supported in Java 16.
-It works with older Java versions if the pom.xml is updated
-as needed.
+The initial code required only records (Java 16). Then the pom.xml
+is updated to use Java 25, as of now (early 2026) the code may work
+with older Java versions.
 
-The proxies has to be defined in a YAML file, an example:
+The proxies have to be defined in a YAML file, an example:
 [conf.example.yaml](conf.example.yaml). As of now it's quite fragile,
 as the YAML loader is a naive implementation providing minimal
 functionality.
 
-Plans (TODOs)
--------------
+Terminology
+-----------
 
-* Improve YAML loader code
-* Separate package (Jar) to generate a config file either from console
-  or interactively.
-* Migrate and improve the SSH code from
-  [JSSH](https://github.com/LA-Toth/jsocks)
-* Add minimalistic rules - disallow connection to the local machine
-  if it is not explicitly allowed.
+As the connection looks like `client - proxy - server`,
+there are two TCP connections: client-side and server-side.
+The proxy acts as a server for the client, so client-side and server
+are interchangeable, similarly the server-side and client. This is confusing, though.
+Example: On the client-side the DH Group implementation is DHGServer.
+
+The TCP connections have two directions, identified as modes, `MODE_IN`
+and `MODE_OUT`, from the proxy's point of view.
+
+
+Supported proxies
+-----------------
+
+* plug: just drops the data to the other side as-is
+* socks: a SOCKSv5 proxy without authentication
+* SSH: in progress to reach milestone 1
+  * SSH milestone 1: `ssh-rsa` server keys,
+    inband destination selection from user name,
+    like `remote-user@server-name`
+    so client could be: `ssh remote-user@server-name@jada-proxy-address`
+    and `password` authentication method
+    every data is copied from one side to another (except the modified username)
+  * SSH milestone 2: keyboard-interactive and public key authentications
+    (requires one-side commuinication with the SSH agent)
+  * SSH milestone 3: policies to decied what's allowed:
+    * can the user connect to that server?
+    * can the user open a specific channel? (note that even if the answer is NO
+      for the agent forwarding, that may be needed on the client side only)
