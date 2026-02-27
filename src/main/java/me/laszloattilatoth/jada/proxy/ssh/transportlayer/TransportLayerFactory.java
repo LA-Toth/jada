@@ -9,9 +9,12 @@ import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
 
 import java.nio.channels.SocketChannel;
 
-public class ClientSideTransportLayer extends TransportLayer {
-    public ClientSideTransportLayer(SshProxyThread proxy, SocketChannel socketChannel, KeyExchangeFactory keyExchangeFactory) {
-        super(proxy, socketChannel, Side.CLIENT, keyExchangeFactory);
-        this.setupHandlers();
+public class TransportLayerFactory {
+    public TransportLayer create(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
+        if (side.isClient()) {
+            return new ClientSideTransportLayer(proxy, socketChannel, new KeyExchangeFactory());
+        }
+
+        return null;
     }
 }

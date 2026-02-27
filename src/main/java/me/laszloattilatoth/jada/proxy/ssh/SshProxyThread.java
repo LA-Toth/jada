@@ -5,9 +5,10 @@ package me.laszloattilatoth.jada.proxy.ssh;
 
 import me.laszloattilatoth.jada.config.ProxyConfig;
 import me.laszloattilatoth.jada.proxy.core.ProxyThread;
-import me.laszloattilatoth.jada.proxy.ssh.transportlayer.ClientSideTransportLayer;
+import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerFactory;
 import me.laszloattilatoth.jada.util.Logging;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ public class SshProxyThread extends ProxyThread {
 
     public SshProxyThread(SocketChannel socketChannel, ProxyConfig config, int threadId) {
         super(socketChannel, config, threadId);
-        this.transportLayer = new ClientSideTransportLayer(this, socketChannel);
+        this.transportLayer = new TransportLayerFactory().create(this, socketChannel, Side.CLIENT);
     }
 
     public final Options options() {
