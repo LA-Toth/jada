@@ -10,6 +10,7 @@ import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
+import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -45,11 +46,12 @@ public abstract class TransportLayer implements LoggerHolder {
     private static final SecureRandom secureRandom = new SecureRandom();
     boolean encryptedPacketMode = false;
 
-    public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
+    public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
         this.proxy = new WeakReference<>(proxy);
         this.logger = proxy.logger();
         this.socketChannel = socketChannel;
         this.side = side;
+        this.kex = keyExchangeFactory.create(this, side);
         this.packetHandlerRegistry = new PacketHandlerRegistry(logger, side, this::handleNotImplementedPacket);
     }
 
