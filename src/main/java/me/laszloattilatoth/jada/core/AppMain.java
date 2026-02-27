@@ -6,16 +6,11 @@ package me.laszloattilatoth.jada.core;
 import me.laszloattilatoth.jada.config.Config;
 import me.laszloattilatoth.jada.config.ProxyConfig;
 import me.laszloattilatoth.jada.proxy.core.ProxyMain;
-import me.laszloattilatoth.jada.proxy.core.registration.Registrar;
-import me.laszloattilatoth.jada.proxy.plug.PlugMain;
-import me.laszloattilatoth.jada.proxy.socks.SocksMain;
-import me.laszloattilatoth.jada.proxy.ssh.SshMain;
 import me.laszloattilatoth.jada.util.Logging;
 import me.laszloattilatoth.jada.util.Sec;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -30,6 +25,7 @@ public class AppMain {
     private final String configFileName;
     private final boolean verifyConfig;
     private final Logger logger;
+    private static final ProxyFactory proxyFactory = new ProxyFactory();  // config loading requires registered proxies
 
     public AppMain(String configFileName, boolean verifyConfig, Logger logger) {
         this.configFileName = configFileName;
@@ -38,10 +34,6 @@ public class AppMain {
     }
 
     public void run() {
-        PlugMain.setup();
-        SocksMain.setup();
-        SshMain.setup();
-
         if (!Sec.init()) {
             logger.severe("Unable to initialize security subsystem;");
             return;
@@ -53,7 +45,6 @@ public class AppMain {
             Logging.logExceptionWithBacktrace(logger, e, Level.SEVERE);
             System.exit(1);
         }
-
 
         try {
             proxyLoop(config.proxyConfigs);
@@ -68,16 +59,10 @@ public class AppMain {
         List<ProxyMain> proxyMains = new ArrayList<>();
 
         for (ProxyConfig cfg : configs) {
-            ProxyMain m = null;
-            try {
-                m = Registrar.getRegistration(cfg.proxyType()).main().getDeclaredConstructor(cfg.getClass()).newInstance(cfg);
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
-                     NoSuchMethodException e) {
-                e.printStackTrace();
-                return;
-            }
+            ProxyMain m = proxyFactory.createProxyMain(cfg, selector);
+            if (m == null) return;
+
             proxyMains.add(m);
-            m.registerToSelector(selector);
         }
 
         Logging.logger().info("Loaded proxies are ready for connections;");
