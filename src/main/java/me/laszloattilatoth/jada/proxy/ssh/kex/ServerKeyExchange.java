@@ -32,7 +32,7 @@ public class ServerKeyExchange extends KeyExchange {
 
     public void processKexDhInit(Packet packet) throws TransportLayerException {
         try {
-            hostKey = SecurityUtils.loadHostKey(hostKeyAlgName.name());
+            loadHostKey();
             dhKex = DHKexFactory.createServer(this,
                     kexAlgorithmSpec,
                     Constant.SSH_ID_STRING,
@@ -53,5 +53,9 @@ public class ServerKeyExchange extends KeyExchange {
         }
         if (!packet.endReached())
             throw new TransportLayerException("Unexpected additional data found in Packet");
+    }
+
+    protected void loadHostKey() {
+        hostKey = SecurityUtils.loadHostKey(hostKeyAlgName.name());
     }
 }
