@@ -12,6 +12,5 @@ import java.nio.channels.SocketChannel;
 public class ClientSideTransportLayer extends TransportLayer {
     public ClientSideTransportLayer(SshProxyThread proxy, SocketChannel socketChannel, KeyExchangeFactory keyExchangeFactory) {
         super(proxy, socketChannel, Side.CLIENT, keyExchangeFactory);
-        this.setupHandlers();
     }
 }
