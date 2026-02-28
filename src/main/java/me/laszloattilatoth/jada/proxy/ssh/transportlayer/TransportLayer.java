@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 /**
  * Based on RFC 4253 - The Secure Shell (SSH) Transport Layer Protocol
  */
-public abstract class TransportLayer implements LoggerHolder {
+public class TransportLayer implements LoggerHolder {
     public final Side side;
     protected final Logger logger;
     protected final SocketChannel socketChannel;
@@ -53,9 +53,10 @@ public abstract class TransportLayer implements LoggerHolder {
         this.side = side;
         this.kex = keyExchangeFactory.create(this, side);
         this.packetHandlerRegistry = new PacketHandlerRegistry(logger, side, this::handleNotImplementedPacket);
+        this.setupHandlers();
     }
 
-    protected void setupHandlers() {
+    private void setupHandlers() {
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_DISCONNECT, this::processMsgIgnore);
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_IGNORE, this::processMsgIgnore);
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented);

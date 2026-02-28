@@ -12,7 +12,7 @@ import java.nio.channels.SocketChannel;
 public class TransportLayerFactory {
     public TransportLayer create(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
         if (side.isClient()) {
-            return new ClientSideTransportLayer(proxy, socketChannel, new KeyExchangeFactory());
+            return new TransportLayer(proxy, socketChannel, side, new KeyExchangeFactory());
         }
 
         return null;
