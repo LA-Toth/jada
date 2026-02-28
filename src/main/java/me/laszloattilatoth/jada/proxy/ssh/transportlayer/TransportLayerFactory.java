@@ -13,6 +13,8 @@ public class TransportLayerFactory {
     public TransportLayer create(SshProxyThread proxy, SocketChannel socketChannel, Side side) {
         if (side.isClient()) {
             return new TransportLayer(proxy, socketChannel, side, new KeyExchangeFactory());
+            // This is hard-coded now, should be a configuration setting. Right now this class has to be recompiled.
+            // return new StoringTransportLayer(proxy, socketChannel, side, new KeyExchangeFactory(true));
         }
 
         return null;

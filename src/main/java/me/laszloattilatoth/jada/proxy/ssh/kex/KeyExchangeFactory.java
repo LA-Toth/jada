@@ -7,9 +7,23 @@ import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 
 public class KeyExchangeFactory {
+    private boolean storePackets;
+
+    public KeyExchangeFactory() {
+        this(false);
+    }
+
+    public KeyExchangeFactory(boolean storePackets) {
+        this.storePackets = storePackets;
+    }
+
     public KeyExchange create(TransportLayer transportLayer, Side side) {
         if (side == Side.CLIENT) {
-            return new ServerKeyExchange(transportLayer);
+            if (storePackets) {
+                return new StoringServerKeyExchange(transportLayer);
+            } else {
+                return new ServerKeyExchange(transportLayer);
+            }
         }
 
         return null;

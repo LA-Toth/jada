@@ -112,7 +112,7 @@ public class TransportLayer implements LoggerHolder {
         handlePacketsInLoop();
     }
 
-    private void writeVersionString() {
+    protected void writeVersionString() {
         logger.info(String.format("Sending version string; version='%s'", Constant.SSH_ID_STRING));
         try {
             socketChannel.write(ByteBuffer.wrap(String.format("%s\r\n", Constant.SSH_ID_STRING).getBytes()));
@@ -122,7 +122,7 @@ public class TransportLayer implements LoggerHolder {
         }
     }
 
-    private void readVersionString() throws TransportLayerException {
+    protected void readVersionString() throws TransportLayerException {
         try {
             peerIDString = getVersionStringFromSocket();
             if (peerIDString == null)
@@ -229,7 +229,7 @@ public class TransportLayer implements LoggerHolder {
     /**
      * Read packet as RFC 4253, 6.  Binary Packet Protocol
      */
-    private Packet readPacket() throws IOException {
+    protected Packet readPacket() throws IOException {
         logger.info("Reading next packet");
         int packetLength = dataInputStream.readInt();
         byte paddingLength = dataInputStream.readByte();
@@ -282,7 +282,7 @@ public class TransportLayer implements LoggerHolder {
         writePacketBytes(bytes, payloadSize);
     }
 
-    private void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
+    protected void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
         int withHeaders = payloadSize + 1 + 4;
         int paddingLength = getPaddingLength(payloadSize);
         System.out.printf("Padding length %d with hdrs %d payloadsize %d packet len %d%n", paddingLength, withHeaders, payloadSize, payloadSize + paddingLength + 1);
@@ -297,7 +297,6 @@ public class TransportLayer implements LoggerHolder {
         if (encryptedPacketMode) {
             SecureRandomWithByteArray secureRandomBA = new SecureRandomWithByteArray(payloadSize);
             buffer.putRawBytes(secureRandomBA.getSecureBytes());
-
         } else {
             for (int i = 0; i != paddingLength; ++i) {
                 buffer.putByte((byte) 0);
