@@ -46,6 +46,8 @@ public class TransportLayer implements LoggerHolder {
     private static final SecureRandom secureRandom = new SecureRandom();
     boolean encryptedPacketMode = false;
 
+    protected PacketReader packetReader;
+
     public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
         this.proxy = new WeakReference<>(proxy);
         this.logger = proxy.logger();
@@ -62,6 +64,7 @@ public class TransportLayer implements LoggerHolder {
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented);
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_DEBUG, this::processMsgIgnore);
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_KEXINIT, kex::processMsgKexInit);
+        this.packetReader = this::readClearTextPacket;
     }
 
     public PacketHandlerRegistry getPacketHandlerRegistry() {
@@ -98,6 +101,12 @@ public class TransportLayer implements LoggerHolder {
 
     public KeyExchange kex() {
         return kex;
+    }
+
+    protected void switchToEncryptedMode() {
+        logger.info("Switching to encrypted mode");
+        encryptedPacketMode = true;
+        this.packetReader = this::readEncryptedPacket;
     }
 
     /**
@@ -203,7 +212,7 @@ public class TransportLayer implements LoggerHolder {
     }
 
     public void readAndHandlePacket() throws IOException, TransportLayerException {
-        Packet packet = readPacket();
+        Packet packet = packetReader.readPacket();
         packet.dump();
         byte packetType = packet.packetType();
         boolean shouldSkip = skipPackets > 0;
@@ -229,7 +238,7 @@ public class TransportLayer implements LoggerHolder {
     /**
      * Read packet as RFC 4253, 6.  Binary Packet Protocol
      */
-    protected Packet readPacket() throws IOException {
+    protected Packet readClearTextPacket() throws IOException {
         logger.info("Reading next packet");
         int packetLength = dataInputStream.readInt();
         byte paddingLength = dataInputStream.readByte();
@@ -241,9 +250,13 @@ public class TransportLayer implements LoggerHolder {
         if (paddingLength > 0)
             dataInputStream.readNBytes(paddingLength);
         logger.fine(() -> "Read packet padding;");
+        return new Packet(data);
+    }
 
-        if (macLength > 0)
-            dataInputStream.readNBytes(macLength);
+    protected Packet readEncryptedPacket() throws IOException {
+        logger.info("Reading next encrypted packet");
+        int blockSize = encryptedPacketMode ? this.kex().outputBlockSize() : 8;
+        byte[] data = dataInputStream.readNBytes(blockSize);
 
         return new Packet(data);
     }
@@ -367,4 +380,13 @@ public class TransportLayer implements LoggerHolder {
         logger.info(() -> "Waiting for SSH_MSG_KEXINIT from other side, storing packet;");
         replayPackets.add(packet);
     }
+
+    public void encryptionChange() {
+        switchToEncryptedMode();
+    }
+
+    protected interface PacketReader {
+         Packet readPacket() throws IOException;
+    }
+
 }
