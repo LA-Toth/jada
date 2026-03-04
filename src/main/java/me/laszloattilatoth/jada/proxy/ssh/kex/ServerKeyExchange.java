@@ -10,14 +10,17 @@ import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 import me.laszloattilatoth.jada.util.security.SecurityUtils;
-import org.apache.sshd.common.kex.AbstractDH;
 
 public class ServerKeyExchange extends KeyExchange {
+    protected String hostKeyBaseDir;
 
-    protected AbstractDH dh;
+    public ServerKeyExchange(TransportLayer transportLayer, String hostKeyBaseDir) {
+        super(transportLayer);
+        this.hostKeyBaseDir = hostKeyBaseDir;
+    }
 
     public ServerKeyExchange(TransportLayer transportLayer) {
-        super(transportLayer);
+        this(transportLayer, null);
     }
 
     private DHGServer dhKex() {
@@ -56,6 +59,6 @@ public class ServerKeyExchange extends KeyExchange {
     }
 
     protected void loadHostKey() {
-        hostKey = SecurityUtils.loadHostKey(hostKeyAlgName.name());
+        hostKey = SecurityUtils.loadHostKey(hostKeyAlgName.name(), hostKeyBaseDir);
     }
 }

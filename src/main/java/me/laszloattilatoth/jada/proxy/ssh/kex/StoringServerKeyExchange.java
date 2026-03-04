@@ -5,12 +5,13 @@ package me.laszloattilatoth.jada.proxy.ssh.kex;
 
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.StoringTransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
+import me.laszloattilatoth.jada.util.PathUtils;
 
 import java.io.IOException;
 
 public class StoringServerKeyExchange extends ServerKeyExchange {
     public StoringServerKeyExchange(TransportLayer transportLayer) {
-        super(transportLayer);
+        super(transportLayer, PathUtils.expandUser("~/.config/jada-dev"));
     }
 
     @Override
