@@ -56,14 +56,24 @@ Supported proxies
 * socks: a SOCKSv5 proxy without authentication
 * SSH: in progress to reach milestone 1
   * SSH milestone 1: `ssh-rsa` server keys,
-    inband destination selection from user name,
+    inband destination selection from username,
     like `remote-user@server-name`
     so client could be: `ssh remote-user@server-name@jada-proxy-address`
     and `password` authentication method
     every data is copied from one side to another (except the modified username)
   * SSH milestone 2: keyboard-interactive and public key authentications
-    (requires one-side commuinication with the SSH agent)
-  * SSH milestone 3: policies to decied what's allowed:
+    (requires one-side communication with the SSH agent)
+  * SSH milestone 3: policies to decide what's allowed:
     * can the user connect to that server?
     * can the user open a specific channel? (note that even if the answer is NO
       for the agent forwarding, that may be needed on the client side only)
+
+SSH setup
+---------
+
+As of now the host key is hardcoded, `~/.config/jada/ssh_host_rsa_key`, and only RSA keys are supported.
+Example:
+
+```shell
+  ssh-keygen -t rsa -b 4096 -f ~/.config/jada/ssh_host_rsa_key -N ""
+```
