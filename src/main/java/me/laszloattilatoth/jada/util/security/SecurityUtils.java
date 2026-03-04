@@ -22,8 +22,11 @@ import java.util.Properties;
 
 public final class SecurityUtils {
     public static KeyPair loadHostKey(String keyType) {
+       return loadHostKey(keyType, PathUtils.expandUser("~/.config/jadfa"));
+    }
+    public static KeyPair loadHostKey(String keyType, String baseDir) {
         try {
-            for (KeyPair kp : getServerIdentities()) {
+            for (KeyPair kp : getServerIdentities(baseDir)) {
                 if (KeyUtils.getKeyType(kp).equals(keyType))
                     return kp;
             }
@@ -33,14 +36,13 @@ public final class SecurityUtils {
         return null;
     }
 
-    public static KeyPair loadHostKey() {
-        return loadHostKey("ssh-rsa");
-    }
-
-    public static Iterable<KeyPair> getServerIdentities() throws GeneralSecurityException, IOException {
+    public static Iterable<KeyPair> getServerIdentities(String baseDir) throws GeneralSecurityException, IOException {
         LinkOption[] options = IoUtils.getLinkOptions(true);
         Collection<String> paths = new ArrayList<>();
-        paths.add(PathUtils.expandUser("~/.config/jada/ssh_host_rsa_key"));
+        paths.add(baseDir + "/ssh_host_rsa_key");
+        paths.add(baseDir + "/ssh_host_dsa_key");
+        paths.add(baseDir + "/ssh_host_ecdsa_key");
+        paths.add(baseDir + "/ssh_host_ed25519_key");
 
         Properties props = new Properties();
         props.setProperty(ServerIdentity.HOST_KEY_CONFIG_PROP, GenericUtils.join(paths, ','));
