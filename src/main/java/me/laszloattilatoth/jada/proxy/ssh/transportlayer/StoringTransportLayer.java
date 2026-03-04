@@ -48,8 +48,14 @@ public class StoringTransportLayer extends TransportLayer {
         super.writePacketBytes(bytes, payloadSize);
     }
 
-    protected Packet readPacket() throws IOException {
-        Packet packet = super.readPacket();
+    protected Packet readClearTextPacket() throws IOException {
+        Packet packet = super.readClearTextPacket();
+        writeBytesToFile(packet.array(), packet.wpos(), false);
+        return packet;
+    }
+
+    protected Packet readEncryptedPacket() throws IOException {
+        Packet packet = super.readEncryptedPacket();
         writeBytesToFile(packet.array(), packet.wpos(), false);
         return packet;
     }
