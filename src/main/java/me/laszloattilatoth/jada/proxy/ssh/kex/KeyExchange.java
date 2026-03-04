@@ -211,6 +211,7 @@ public abstract class KeyExchange extends WithTransportLayer {
 
     public void newKeysHandler(Packet packet) {
         transportLayer().unregisterHandler(Constant.SSH_MSG_NEWKEYS);
+        transportLayer().encryptionChange();
     }
 
     public KexOutput getKexOutput() {
