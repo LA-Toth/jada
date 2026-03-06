@@ -3,9 +3,9 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
-import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
+import me.laszloattilatoth.jada.proxy.ssh.core.SshProxy;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
 import me.laszloattilatoth.jada.util.Logging;
 
@@ -27,7 +27,7 @@ public class StoringTransportLayer extends TransportLayer {
     private final int randomIdForStorage;
     private final String directory;
 
-    public StoringTransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
+    public StoringTransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
         super(proxy, socketChannel, side, keyExchangeFactory);
 
         SecureRandom secureRandom = new SecureRandom();

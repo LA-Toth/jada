@@ -4,10 +4,10 @@
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.core.LoggerHolder;
-import me.laszloattilatoth.jada.proxy.ssh.SshProxyThread;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
+import me.laszloattilatoth.jada.proxy.ssh.core.SshProxy;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
@@ -33,7 +33,7 @@ public class TransportLayer implements LoggerHolder {
     public final Side side;
     protected final Logger logger;
     protected final SocketChannel socketChannel;
-    private final WeakReference<SshProxyThread> proxy;
+    private final WeakReference<SshProxy> proxy;
     private final int macLength = 0;
     private final PacketHandlerRegistry packetHandlerRegistry;
     private final List<Packet> replayPackets = new ArrayList<>();
@@ -48,7 +48,7 @@ public class TransportLayer implements LoggerHolder {
 
     protected PacketReader packetReader;
 
-    public TransportLayer(SshProxyThread proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
+    public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
         this.proxy = new WeakReference<>(proxy);
         this.logger = proxy.logger();
         this.socketChannel = socketChannel;
@@ -83,7 +83,7 @@ public class TransportLayer implements LoggerHolder {
         return logger;
     }
 
-    public final SshProxyThread proxy() {
+    public final SshProxy proxy() {
         return Objects.requireNonNull(proxy.get(), "Proxy cannot be nul in transport layer");
     }
 
