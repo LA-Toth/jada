@@ -40,7 +40,7 @@ public class CipherRegistry {
         return byId(nameWithId.nameId());
     }
 
-    private static void put(String name, long blockSize, long keyLen, long ivLen, long authLen, long flags) {
+    private static void put(String name, int blockSize, int keyLen, int ivLen, int authLen, long flags) {
         int nameId = Name.getNameId(name);
         list.put(nameId, new CipherSpec(name, nameId, blockSize, keyLen, ivLen != 0 ? ivLen : blockSize, authLen, flags));
     }
