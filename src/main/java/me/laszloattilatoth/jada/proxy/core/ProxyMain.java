@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProxyMain {
     private final AtomicInteger lastThreadId = new AtomicInteger();
-    protected ProxyConfig config;
     private final Class<? extends ProxyThread> proxyClass;
+    protected ProxyConfig config;
     protected Map<ServerSocketChannel, Boolean> socketChannelMap = new HashMap<>();
 
     public ProxyMain(ProxyConfig config, Class<? extends ProxyThread> proxyClass) {

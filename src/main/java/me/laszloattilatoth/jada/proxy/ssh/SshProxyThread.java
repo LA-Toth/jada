@@ -5,8 +5,8 @@ package me.laszloattilatoth.jada.proxy.ssh;
 
 import me.laszloattilatoth.jada.config.ProxyConfig;
 import me.laszloattilatoth.jada.proxy.core.ProxyThread;
-import me.laszloattilatoth.jada.proxy.ssh.core.SshProxy;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
+import me.laszloattilatoth.jada.proxy.ssh.core.SshProxy;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerFactory;

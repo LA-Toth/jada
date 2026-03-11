@@ -7,7 +7,7 @@ import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
 
 public class KeyExchangeFactory {
-    private boolean storePackets;
+    private final boolean storePackets;
 
     public KeyExchangeFactory() {
         this(false);

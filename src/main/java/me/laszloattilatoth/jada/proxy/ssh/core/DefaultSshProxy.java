@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 
 public class DefaultSshProxy implements SshProxy {
 
-    private Logger logger  = Logger.getGlobal();
+    private final Logger logger = Logger.getGlobal();
 
     @Override
     public Options options() {

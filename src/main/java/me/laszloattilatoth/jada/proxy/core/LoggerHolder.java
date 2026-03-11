@@ -6,5 +6,5 @@ package me.laszloattilatoth.jada.proxy.core;
 import java.util.logging.Logger;
 
 public interface LoggerHolder {
-     Logger logger();
+    Logger logger();
 }

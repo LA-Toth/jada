@@ -53,7 +53,7 @@ public abstract class KeyExchange extends WithTransportLayer {
         if (this.newKeys[Constant.MODE_OUT] == null) {
             return 8;
         } else {
-            return (int) this.newKeys[Constant.MODE_OUT].cipherSpec.blockSize();
+            return this.newKeys[Constant.MODE_OUT].cipherSpec.blockSize();
         }
     }
 
@@ -235,40 +235,9 @@ public abstract class KeyExchange extends WithTransportLayer {
 
     protected static class KexState {
         protected final KexInitPacket ownInitPacket = new KexInitPacket();
-
-        public KexInitPacket getOwnInitPacket() {
-            return ownInitPacket;
-        }
-
         protected KexInitPacket peerInitPacket;
-
-        public KexInitPacket getPeerInitPacket() {
-            return peerInitPacket;
-        }
-
-        public void setPeerInitPacket(KexInitPacket peerInitPacket) {
-            this.peerInitPacket = peerInitPacket;
-        }
-
         protected byte[] ownKexInit;
-
-        public byte[] getOwnKexInit() {
-            return ownKexInit;
-        }
-
-        public void setOwnKexInit(byte[] ownKexInit) {
-            this.ownKexInit = ownKexInit;
-        }
-
         protected byte[] peerKexInit;
-
-        public byte[] getPeerKexInit() {
-            return peerKexInit;
-        }
-
-        public void setPeerKexInit(byte[] peerKexInit) {
-            this.peerKexInit = peerKexInit;
-        }
 
         public KexState(Options.SideOptions options) {
             try {
@@ -283,6 +252,34 @@ public abstract class KeyExchange extends WithTransportLayer {
             } catch (KexException e) {
                 // cannot happen. FIXME.
             }
+        }
+
+        public KexInitPacket getOwnInitPacket() {
+            return ownInitPacket;
+        }
+
+        public KexInitPacket getPeerInitPacket() {
+            return peerInitPacket;
+        }
+
+        public void setPeerInitPacket(KexInitPacket peerInitPacket) {
+            this.peerInitPacket = peerInitPacket;
+        }
+
+        public byte[] getOwnKexInit() {
+            return ownKexInit;
+        }
+
+        public void setOwnKexInit(byte[] ownKexInit) {
+            this.ownKexInit = ownKexInit;
+        }
+
+        public byte[] getPeerKexInit() {
+            return peerKexInit;
+        }
+
+        public void setPeerKexInit(byte[] peerKexInit) {
+            this.peerKexInit = peerKexInit;
         }
     }
 }
