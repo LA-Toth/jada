@@ -24,6 +24,7 @@ public class SshProxyThread extends ProxyThread implements SshProxy {
         this.transportLayer = new TransportLayerFactory().create(this, socketChannel, Side.CLIENT);
     }
 
+    @Override
     public final Options options() {
         return (Options) config.options();
     }

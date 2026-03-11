@@ -77,6 +77,7 @@ public class TransportLayer implements LoggerHolder {
         packetHandlerRegistry.unregisterHandler(packetType);
     }
 
+    @Override
     public Logger logger() {
         return logger;
     }

@@ -29,6 +29,7 @@ public abstract class WithTransportLayer implements LoggerHolder {
         return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
     }
 
+    @Override
     public Logger logger() {
         return logger;
     }
