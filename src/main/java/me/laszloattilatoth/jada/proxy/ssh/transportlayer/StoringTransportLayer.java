@@ -28,7 +28,7 @@ public class StoringTransportLayer extends TransportLayer {
     private final String directory;
 
     public StoringTransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
-        super(proxy, socketChannel, side, keyExchangeFactory);
+        super(proxy, socketChannel, side, new StoringTransportLayerIO(), keyExchangeFactory);
 
         SecureRandom secureRandom = new SecureRandom();
         randomIdForStorage = secureRandom.nextInt();
@@ -43,23 +43,7 @@ public class StoringTransportLayer extends TransportLayer {
         }
     }
 
-    protected void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
-        writeBytesToFile(bytes, payloadSize, true);
-        super.writePacketBytes(bytes, payloadSize);
-    }
-
-    protected Packet readClearTextPacket() throws IOException {
-        Packet packet = super.readClearTextPacket();
-        writeBytesToFile(packet.array(), packet.wpos(), false);
-        return packet;
-    }
-
-    protected Packet readEncryptedPacket() throws IOException {
-        Packet packet = super.readEncryptedPacket();
-        writeBytesToFile(packet.array(), packet.wpos(), false);
-        return packet;
-    }
-
+    @Override
     protected void writeVersionString() {
         logger.info(String.format("Sending version string; version='%s'", Constant.SSH_ID_STRING));
         try {
@@ -71,6 +55,7 @@ public class StoringTransportLayer extends TransportLayer {
         }
     }
 
+    @Override
     protected void readVersionString() throws TransportLayerException {
         super.readVersionString();
         byte[] bytes = peerIDString().getBytes();
@@ -94,6 +79,33 @@ public class StoringTransportLayer extends TransportLayer {
 
         try (OutputStream os = Files.newOutputStream(path)) {
             os.write(bytes, 0, count);
+        }
+    }
+
+    private static class StoringTransportLayerIO extends TransportLayerIO {
+
+        private void writeBytesToFile(byte[] bytes, int count, boolean out) throws IOException {
+            ((StoringTransportLayer) transportLayer()).writeBytesToFile(bytes, count, out);
+        }
+
+        @Override
+        protected void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
+            writeBytesToFile(bytes, payloadSize, true);
+            super.writePacketBytes(bytes, payloadSize);
+        }
+
+        @Override
+        protected Packet readClearTextPacket() throws IOException {
+            Packet packet = super.readClearTextPacket();
+            writeBytesToFile(packet.array(), packet.wpos(), false);
+            return packet;
+        }
+
+        @Override
+        protected Packet readEncryptedPacket() throws IOException {
+            Packet packet = super.readEncryptedPacket();
+            writeBytesToFile(packet.array(), packet.wpos(), false);
+            return packet;
         }
     }
 }
