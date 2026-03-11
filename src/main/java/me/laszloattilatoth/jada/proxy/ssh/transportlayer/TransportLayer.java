@@ -5,7 +5,6 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.core.LoggerHolder;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
-import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.core.SshProxy;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
@@ -13,13 +12,12 @@ import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
-import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -38,23 +36,24 @@ public class TransportLayer implements LoggerHolder {
     private final PacketHandlerRegistry packetHandlerRegistry;
     private final List<Packet> replayPackets = new ArrayList<>();
     protected KeyExchange kex;
-    protected DataInputStream dataInputStream = null;
-    protected DataOutputStream dataOutputStream = null;
+    protected TransportLayerInputOutput io = null;
     protected int skipPackets = 0;
     private String peerIDString;
 
-    private static final SecureRandom secureRandom = new SecureRandom();
-    boolean encryptedPacketMode = false;
-
-    protected PacketReader packetReader;
-
     public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
+        this(proxy, socketChannel, side, new TransportLayerIO(), keyExchangeFactory);
+    }
+
+    public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, TransportLayerInputOutput io, KeyExchangeFactory keyExchangeFactory) {
         this.proxy = new WeakReference<>(proxy);
         this.logger = proxy.logger();
         this.socketChannel = socketChannel;
         this.side = side;
+        this.io = io;
         this.kex = keyExchangeFactory.create(this, side);
         this.packetHandlerRegistry = new PacketHandlerRegistry(logger, side, this::handleNotImplementedPacket);
+
+        this.io.setTransportLayer(this);
         this.setupHandlers();
     }
 
@@ -64,7 +63,6 @@ public class TransportLayer implements LoggerHolder {
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_UNIMPLEMENTED, this::processMsgUnimplemented);
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_DEBUG, this::processMsgIgnore);
         packetHandlerRegistry.registerHandler(Constant.SSH_MSG_KEXINIT, kex::processMsgKexInit);
-        this.packetReader = this::readClearTextPacket;
     }
 
     public PacketHandlerRegistry getPacketHandlerRegistry() {
@@ -101,12 +99,6 @@ public class TransportLayer implements LoggerHolder {
 
     public KeyExchange kex() {
         return kex;
-    }
-
-    protected void switchToEncryptedMode() {
-        logger.info("Switching to encrypted mode");
-        encryptedPacketMode = true;
-        this.packetReader = this::readEncryptedPacket;
     }
 
     /**
@@ -193,8 +185,8 @@ public class TransportLayer implements LoggerHolder {
 
     private void switchToDataStreams() throws TransportLayerException {
         try {
-            dataInputStream = new DataInputStream(new BufferedInputStream(socketChannel.socket().getInputStream()));
-            dataOutputStream = new DataOutputStream(new BufferedOutputStream(socketChannel.socket().getOutputStream()));
+            this.io.setInputStream(socketChannel.socket().getInputStream());
+            this.io.setOutputStream(socketChannel.socket().getOutputStream());
         } catch (IOException e) {
             throw new TransportLayerException(e.getMessage());
         }
@@ -212,7 +204,7 @@ public class TransportLayer implements LoggerHolder {
     }
 
     public void readAndHandlePacket() throws IOException, TransportLayerException {
-        Packet packet = packetReader.readPacket();
+        Packet packet = this.io.readPacket();
         packet.dump();
         byte packetType = packet.packetType();
         boolean shouldSkip = skipPackets > 0;
@@ -236,119 +228,24 @@ public class TransportLayer implements LoggerHolder {
     }
 
     /**
-     * Read packet as RFC 4253, 6.  Binary Packet Protocol
-     */
-    protected Packet readClearTextPacket() throws IOException {
-        logger.info("Reading next packet");
-        int packetLength = dataInputStream.readInt();
-        byte paddingLength = dataInputStream.readByte();
-        logger.info(() -> String.format("Read packet header; length='%d', hex_length='0x%x', padding_length='%d'",
-                packetLength, packetLength, paddingLength));
-
-        byte[] data = dataInputStream.readNBytes(packetLength - paddingLength - 1);
-        logger.fine(() -> "Read packet data;");
-        if (paddingLength > 0)
-            dataInputStream.readNBytes(paddingLength);
-        logger.fine(() -> "Read packet padding;");
-        return new Packet(data);
-    }
-
-    protected Packet readEncryptedPacket() throws IOException {
-        logger.info("Reading next encrypted packet");
-        int blockSize = encryptedPacketMode ? this.kex().outputBlockSize() : 8;
-        byte[] data = dataInputStream.readNBytes(blockSize);
-
-        return new Packet(data);
-    }
-
-    /**
      * Write packet as RFC 4253, 6.  Binary Packet Protocol
      */
     public void writePacket(Packet packet) throws IOException {
-        logger.info("Writing packet");
-        packet.dump();
-        writePacketBytes(packet.array(), packet.wpos());
+        this.io.writePacket(packet);
     }
 
     /**
      * Write packet as RFC 4253, 6.  Binary Packet Protocol
      */
     public void writePacket(Buffer packet) throws IOException {
-        logger.info("Writing packet");
-        Logger logger = Logging.logger();
-        byte packetType = packet.array()[0];
-        logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
-                packetType, packetType, packet.wpos()));
-        Logging.logBytes(logger, packet.array(), packet.wpos());
-        writePacketBytes(packet.array(), packet.wpos());
+        this.io.writePacket(packet);
     }
 
     /**
      * Write packet as RFC 4253, 6.  Binary Packet Protocol
      */
     public void writePacket(byte[] bytes, int payloadSize) throws IOException {
-        logger.info("Writing packet");
-        Logger logger = Logging.logger();
-        logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', length='%d'",
-                bytes[0], bytes[0], payloadSize));
-        Logging.logBytes(logger, bytes, payloadSize);
-        writePacketBytes(bytes, payloadSize);
-    }
-
-    protected void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
-        int withHeaders = payloadSize + 1 + 4;
-        int paddingLength = getPaddingLength(payloadSize);
-        System.out.printf("Padding length %d with hdrs %d payloadsize %d packet len %d%n", paddingLength, withHeaders, payloadSize, payloadSize + paddingLength + 1);
-
-        int totalLength = withHeaders + paddingLength;
-
-        ByteArrayBuffer buffer = new ByteArrayBuffer(totalLength);
-        buffer.putInt(payloadSize + paddingLength + 1);
-        buffer.putByte((byte) paddingLength);
-        buffer.putRawBytes(bytes, 0, payloadSize);
-
-        if (encryptedPacketMode) {
-            SecureRandomWithByteArray secureRandomBA = new SecureRandomWithByteArray(payloadSize);
-            buffer.putRawBytes(secureRandomBA.getSecureBytes());
-        } else {
-            for (int i = 0; i != paddingLength; ++i) {
-                buffer.putByte((byte) 0);
-            }
-        }
-
-        Logger logger = Logging.logger();
-        logger.info(() -> String.format("Raw packet dump follows without MAC; length='%d'", totalLength));
-        Logging.logBytes(logger, buffer.array(), totalLength);
-
-        dataOutputStream.write(buffer.array(), 0, totalLength);
-
-        // FIXME: mac
-        dataOutputStream.flush();
-    }
-
-    private int getPaddingLength(int payloadSize) {
-        int withHeaders = payloadSize + 1 + 4;
-        int blockSize = encryptedPacketMode ? this.kex().outputBlockSize() : 8;
-        int lessThenBlockSizeLen = withHeaders % blockSize;
-        int paddingLength = 0;
-        if (encryptedPacketMode) {
-            // TODO
-            paddingLength = Math.max(blockSize, Math.max(lessThenBlockSizeLen, secureRandom.nextInt(255))) / blockSize * blockSize;
-        } else {
-            // pointless to have any extra beyond to reach the block size
-            // as this is unencrypted
-            if (lessThenBlockSizeLen > 0) {
-                paddingLength = blockSize - lessThenBlockSizeLen;
-            }
-        }
-
-        if (withHeaders + paddingLength < blockSize) {
-            paddingLength += blockSize - withHeaders - paddingLength;
-        }
-        if (paddingLength < 4) {
-            paddingLength += blockSize;
-        }
-        return paddingLength;
+        this.io.writePacket(bytes, payloadSize);
     }
 
     private void handlePacketsInLoop() throws TransportLayerException {
@@ -382,11 +279,6 @@ public class TransportLayer implements LoggerHolder {
     }
 
     public void encryptionChange() {
-        switchToEncryptedMode();
+        logger.info("Switching to encrypted mode");
     }
-
-    protected interface PacketReader {
-         Packet readPacket() throws IOException;
-    }
-
 }
