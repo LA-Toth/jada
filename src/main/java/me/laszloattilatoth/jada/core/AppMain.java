@@ -22,10 +22,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AppMain {
+    private static final ProxyFactory proxyFactory = new ProxyFactory();  // config loading requires registered proxies
     private final String configFileName;
     private final boolean verifyConfig;
     private final Logger logger;
-    private static final ProxyFactory proxyFactory = new ProxyFactory();  // config loading requires registered proxies
 
     public AppMain(String configFileName, boolean verifyConfig, Logger logger) {
         this.configFileName = configFileName;

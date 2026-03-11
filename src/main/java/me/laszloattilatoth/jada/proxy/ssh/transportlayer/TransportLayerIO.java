@@ -13,16 +13,15 @@ import java.util.Objects;
 import java.util.logging.Logger;
 
 public class TransportLayerIO implements TransportLayerInputOutput {
+    private static final SecureRandom secureRandom = new SecureRandom();
+    private final boolean encryptedWriteMode = false;
+    private final boolean encryptedReadMode = false;
     protected WeakReference<TransportLayer> transportLayer = null;
     protected Logger logger = null;
-    private boolean encryptedWriteMode = false;
-    private boolean encryptedReadMode = false;
-    private DataInputStream dataInputStream = null;
-    private DataOutputStream dataOutputStream = null;
-    private static final SecureRandom secureRandom = new SecureRandom();
-
     protected NewKeys receiverNewKeys = new NewKeys();
     protected NewKeys senderNewKeys = new NewKeys();
+    private DataInputStream dataInputStream = null;
+    private DataOutputStream dataOutputStream = null;
 
     public void setTransportLayer(TransportLayer transportLayer) {
         this.transportLayer = new WeakReference<>(transportLayer);
@@ -187,7 +186,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
 
     protected Packet readEncryptedPacket() throws IOException {
         logger.info("Reading next encrypted packet");
-        byte[] data = dataInputStream.readNBytes( receiverNewKeys.cipherBlockSize());
+        byte[] data = dataInputStream.readNBytes(receiverNewKeys.cipherBlockSize());
 
         return new Packet(data);
     }

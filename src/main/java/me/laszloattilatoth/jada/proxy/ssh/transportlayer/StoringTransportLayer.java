@@ -22,10 +22,9 @@ import java.util.logging.Level;
 
 public class StoringTransportLayer extends TransportLayer {
     private static final String BASE_DIR = "/tmp/JADA/storing-transport-layer";
-    private long outputFileCount = 0;
-
     private final int randomIdForStorage;
     private final String directory;
+    private long outputFileCount = 0;
 
     public StoringTransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
         super(proxy, socketChannel, side, new StoringTransportLayerIO(), keyExchangeFactory);

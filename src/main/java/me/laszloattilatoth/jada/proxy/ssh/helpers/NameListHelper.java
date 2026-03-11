@@ -10,6 +10,10 @@ import java.util.List;
 
 public class NameListHelper {
 
+    private NameListHelper() {
+        throw new UnsupportedOperationException("No instance allowed");
+    }
+
     public static ArrayList<String> splitNameList(byte[] buffer, int startingPosition, int length) {
         int startPos = startingPosition;
         int endPos = startingPosition;
@@ -75,9 +79,5 @@ public class NameListHelper {
 
         nameIds[nameIds.length - 1] = 0;
         return nameIds;
-    }
-
-    private NameListHelper() {
-        throw new UnsupportedOperationException("No instance allowed");
     }
 }

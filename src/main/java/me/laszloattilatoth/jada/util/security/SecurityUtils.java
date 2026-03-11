@@ -22,8 +22,9 @@ import java.util.Properties;
 
 public final class SecurityUtils {
     public static KeyPair loadHostKey(String keyType) {
-       return loadHostKey(keyType, PathUtils.expandUser("~/.config/jadfa"));
+        return loadHostKey(keyType, PathUtils.expandUser("~/.config/jadfa"));
     }
+
     public static KeyPair loadHostKey(String keyType, String baseDir) {
         try {
             for (KeyPair kp : getServerIdentities(baseDir)) {

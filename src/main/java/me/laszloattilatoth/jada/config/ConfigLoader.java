@@ -56,7 +56,8 @@ public class ConfigLoader {
             ProxyOptions options = null;
             try {
                 options = Config.registeredProxies.get((String) proxy.get("proxy")).options().getDeclaredConstructor().newInstance();
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
+                     NoSuchMethodException e) {
                 throw new Config.InvalidConfig(e.getMessage());
             }
 

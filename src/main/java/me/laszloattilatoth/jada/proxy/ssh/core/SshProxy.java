@@ -8,5 +8,6 @@ import me.laszloattilatoth.jada.proxy.ssh.Options;
 
 public interface SshProxy extends Proxy {
     Options options();
+
     boolean shouldQuit();
 }

@@ -16,8 +16,8 @@ public class PacketHandlerRegistry {
     private static final String UNKNOWN_STR = "(unknown)";
     private static final String NOT_IMPLEMENTED_STR = "(not implemented)";
     public final Side side;
-    private final PacketHandler notImplementedPacketHandler;
     protected final Logger logger;
+    private final PacketHandler notImplementedPacketHandler;
     private final PacketHandler[] packetHandlers = new PacketHandler[256];
     private final String[] packetTypeNames = new String[256];
 
