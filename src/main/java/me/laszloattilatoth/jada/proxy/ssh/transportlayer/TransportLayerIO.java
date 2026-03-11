@@ -21,6 +21,9 @@ public class TransportLayerIO implements TransportLayerInputOutput {
     private DataOutputStream dataOutputStream = null;
     private static final SecureRandom secureRandom = new SecureRandom();
 
+    protected NewKeys receiverNewKeys = new NewKeys();
+    protected NewKeys senderNewKeys = new NewKeys();
+
     public void setTransportLayer(TransportLayer transportLayer) {
         this.transportLayer = new WeakReference<>(transportLayer);
         this.logger = transportLayer.logger();
@@ -123,9 +126,9 @@ public class TransportLayerIO implements TransportLayerInputOutput {
         dataOutputStream.flush();
     }
 
-    private int getPaddingLength(int payloadSize) {
+    protected int getPaddingLength(int payloadSize) {
         int withHeaders = payloadSize + 1 + 4;
-        int blockSize = encryptedWriteMode ? transportLayer().kex().outputBlockSize() : 8;
+        int blockSize = senderNewKeys.cipherBlockSize();
         int lessThenBlockSizeLen = withHeaders % blockSize;
         int paddingLength = 0;
         if (encryptedWriteMode) {
@@ -133,7 +136,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
             paddingLength = Math.max(blockSize, Math.max(lessThenBlockSizeLen, secureRandom.nextInt(255))) / blockSize * blockSize;
         } else {
             // pointless to have any extra beyond to reach the block size
-            // as this is unencrypted
+            // as this is unencrypted (except 4 bytes, as for some reason it's expected by OpenSSH, see below)
             if (lessThenBlockSizeLen > 0) {
                 paddingLength = blockSize - lessThenBlockSizeLen;
             }
@@ -143,6 +146,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
             paddingLength += blockSize - withHeaders - paddingLength;
         }
         if (paddingLength < 4) {
+            // fix for OpenSSH
             paddingLength += blockSize;
         }
         return paddingLength;
@@ -183,8 +187,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
 
     protected Packet readEncryptedPacket() throws IOException {
         logger.info("Reading next encrypted packet");
-        int blockSize = encryptedReadMode ? transportLayer().kex().outputBlockSize() : 8;
-        byte[] data = dataInputStream.readNBytes(blockSize);
+        byte[] data = dataInputStream.readNBytes( receiverNewKeys.cipherBlockSize());
 
         return new Packet(data);
     }

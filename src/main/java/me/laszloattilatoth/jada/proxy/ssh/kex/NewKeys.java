@@ -4,14 +4,18 @@
 package me.laszloattilatoth.jada.proxy.ssh.kex;
 
 import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherRegistry;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.MacSpec;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.MacRegistry;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.MacSpec;
 
 public class NewKeys {
     public CipherSpec cipherSpec;
     public MacSpec macSpec;
+
+    public NewKeys() {
+        cipherSpec = CipherSpec.CIPHER_NONE;
+    }
 
     public void setEncryption(NameWithId encAlg) {
         cipherSpec = CipherRegistry.byNameWithId(encAlg);
@@ -31,5 +35,9 @@ public class NewKeys {
 
     public void setCompression(NameWithId compAlg) {
         // not supported as of now
+    }
+
+    public int cipherBlockSize() {
+        return cipherSpec.blockSize();
     }
 }
