@@ -12,13 +12,16 @@ import me.laszloattilatoth.jada.util.Logging;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.util.Objects;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class StoringTransportLayer extends TransportLayer {
     private static final String BASE_DIR = "/tmp/JADA/storing-transport-layer";
@@ -27,7 +30,7 @@ public class StoringTransportLayer extends TransportLayer {
     private long outputFileCount = 0;
 
     public StoringTransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
-        super(proxy, socketChannel, side, new StoringTransportLayerIO(), keyExchangeFactory);
+        super(proxy, socketChannel, side, new StoringTransportLayerIO(proxy.logger()), keyExchangeFactory);
 
         SecureRandom secureRandom = new SecureRandom();
         randomIdForStorage = secureRandom.nextInt();
@@ -82,9 +85,22 @@ public class StoringTransportLayer extends TransportLayer {
     }
 
     private static class StoringTransportLayerIO extends TransportLayerIO {
+        WeakReference<StoringTransportLayer> transportLayer;
+
+        public StoringTransportLayerIO(Logger logger) {
+            super(logger);
+        }
+
+        public void setTransportLayer(StoringTransportLayer transportLayer) {
+            this.transportLayer = new WeakReference<>(transportLayer);
+        }
+
+        public StoringTransportLayer storingTransportLayer() {
+            return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
+        }
 
         private void writeBytesToFile(byte[] bytes, int count, boolean out) throws IOException {
-            ((StoringTransportLayer) transportLayer()).writeBytesToFile(bytes, count, out);
+            storingTransportLayer().writeBytesToFile(bytes, count, out);
         }
 
         @Override

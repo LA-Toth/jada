@@ -41,7 +41,7 @@ public class TransportLayer implements LoggerHolder {
     private String peerIDString;
 
     public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
-        this(proxy, socketChannel, side, new TransportLayerIO(), keyExchangeFactory);
+        this(proxy, socketChannel, side, new TransportLayerIO(proxy.logger()), keyExchangeFactory);
     }
 
     public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, TransportLayerInputOutput io, KeyExchangeFactory keyExchangeFactory) {
@@ -53,7 +53,6 @@ public class TransportLayer implements LoggerHolder {
         this.kex = keyExchangeFactory.create(this, side);
         this.packetHandlerRegistry = new PacketHandlerRegistry(logger, side, this::handleNotImplementedPacket);
 
-        this.io.setTransportLayer(this);
         this.setupHandlers();
     }
 
