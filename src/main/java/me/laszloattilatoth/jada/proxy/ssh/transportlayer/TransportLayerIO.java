@@ -2,34 +2,31 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
 import me.laszloattilatoth.jada.proxy.ssh.kex.NewKeys;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
 import java.io.*;
-import java.lang.ref.WeakReference;
 import java.security.SecureRandom;
-import java.util.Objects;
 import java.util.logging.Logger;
 
 public class TransportLayerIO implements TransportLayerInputOutput {
     private static final SecureRandom secureRandom = new SecureRandom();
-    private final boolean encryptedWriteMode = false;
-    private final boolean encryptedReadMode = false;
-    protected WeakReference<TransportLayer> transportLayer = null;
+    private boolean encryptedWriteMode = false;
+    private boolean encryptedReadMode = false;
     protected Logger logger = null;
     protected NewKeys receiverNewKeys = new NewKeys();
     protected NewKeys senderNewKeys = new NewKeys();
     private DataInputStream dataInputStream = null;
     private DataOutputStream dataOutputStream = null;
 
-    public void setTransportLayer(TransportLayer transportLayer) {
-        this.transportLayer = new WeakReference<>(transportLayer);
-        this.logger = transportLayer.logger();
+    public TransportLayerIO() {
+        this(Logger.getGlobal());
     }
 
-    protected TransportLayer transportLayer() {
-        return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
+    public TransportLayerIO(Logger logger) {
+        this.logger = logger;
     }
 
     @Override
@@ -44,17 +41,16 @@ public class TransportLayerIO implements TransportLayerInputOutput {
 
     @Override
     public void addReceiverNewKeys(NewKeys newKeys) {
-
     }
 
     @Override
     public void addSenderNewKeys(NewKeys newKeys) {
-
+        encryptedReadMode = receiverNewKeys.cipherSpec == CipherSpec.CIPHER_NONE;
     }
 
     @Override
     public void sshMsgNewKeysSent() {
-
+        encryptedWriteMode = senderNewKeys.cipherSpec == CipherSpec.CIPHER_NONE;
     }
 
     /**
