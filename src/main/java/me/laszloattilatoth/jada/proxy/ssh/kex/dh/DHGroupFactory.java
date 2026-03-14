@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-only
 // SPDX-FileCopyrightText: Copyright (c) Laszlo Attila Toth
 
 package me.laszloattilatoth.jada.proxy.ssh.kex.dh;
