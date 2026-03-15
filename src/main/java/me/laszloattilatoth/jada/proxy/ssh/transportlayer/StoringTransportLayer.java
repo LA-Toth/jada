@@ -110,7 +110,7 @@ public class StoringTransportLayer extends TransportLayer {
         }
 
         @Override
-        protected Packet readClearTextPacket() throws IOException {
+        protected Packet readClearTextPacket() throws IOException, TransportLayerException {
             Packet packet = super.readClearTextPacket();
             writeBytesToFile(packet.array(), packet.wpos(), false);
             return packet;

@@ -5,11 +5,19 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.security.SecureRandom;
 
 class GrowingInputStream extends InputStream {
     private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     private int readPos = 0;
+    private static final SecureRandom secureRandom = new SecureRandom();
+
+
+    public OutputStream getOutputStream() {
+        return buffer;
+    }
 
     public void addBytes(byte[] data) {
         buffer.write(data, 0, data.length);
@@ -36,7 +44,7 @@ class GrowingInputStream extends InputStream {
         buffer.write(value & 0xFF);
     }
 
-    public synchronized void addLong(long value) {
+    public void addLong(long value) {
         buffer.write((int) (value >>> 56) & 0xFF);
         buffer.write((int) (value >>> 48) & 0xFF);
         buffer.write((int) (value >>> 40) & 0xFF);
@@ -45,6 +53,12 @@ class GrowingInputStream extends InputStream {
         buffer.write((int) (value >>> 16) & 0xFF);
         buffer.write((int) (value >>> 8) & 0xFF);
         buffer.write((int) value & 0xFF);
+    }
+
+    public void addSecureBytes(int count) {
+        byte[] data = new byte[count];
+        secureRandom.nextBytes(data);
+        addBytes(data);
     }
 
     @Override

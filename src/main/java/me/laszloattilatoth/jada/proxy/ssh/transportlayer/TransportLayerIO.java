@@ -93,7 +93,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
     protected void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
         int withHeaders = payloadSize + 1 + 4;
         int paddingLength = getPaddingLength(payloadSize);
-        System.out.printf("Padding length %d with hdrs %d payloadsize %d packet len %d%n", paddingLength, withHeaders, payloadSize, payloadSize + paddingLength + 1);
+        //System.out.printf("Padding length %d with hdrs %d payloadsize %d packet len %d%n", paddingLength, withHeaders, payloadSize, payloadSize + paddingLength + 1);
 
         int totalLength = withHeaders + paddingLength;
 
@@ -111,7 +111,6 @@ public class TransportLayerIO implements TransportLayerInputOutput {
             }
         }
 
-        Logger logger = Logging.logger();
         logger.info(() -> String.format("Raw packet dump follows without MAC; length='%d'", totalLength));
         Logging.logBytes(logger, buffer.array(), totalLength);
 
@@ -165,12 +164,20 @@ public class TransportLayerIO implements TransportLayerInputOutput {
         }
     }
 
-    protected Packet readClearTextPacket() throws IOException {
+    protected Packet readClearTextPacket() throws IOException, TransportLayerException {
         logger.info("Reading next packet");
         int packetLength = dataInputStream.readInt();
         byte paddingLength = dataInputStream.readByte();
         logger.info(() -> String.format("Read packet header; length='%d', hex_length='0x%x', padding_length='%d'",
                 packetLength, packetLength, paddingLength));
+
+        if ((packetLength + 4) % receiverNewKeys.cipherBlockSize() != 0) {
+            throw new TransportLayerException("Read packet size is not multiple of block size");
+        }
+
+        if (paddingLength < 4) {
+            throw new TransportLayerException("Padding length is smaller than the minimum value 4");
+        }
 
         byte[] data = dataInputStream.readNBytes(packetLength - paddingLength - 1);
         logger.fine(() -> "Read packet data;");
