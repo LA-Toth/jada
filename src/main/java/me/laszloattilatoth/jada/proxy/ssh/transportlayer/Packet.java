@@ -44,7 +44,10 @@ public class Packet extends ByteArrayBuffer {
     }
 
     public void dump() {
-        Logger logger = Logging.logger();
+        dump(Logging.logger());
+    }
+
+    public void dump(Logger logger) {
         logger.info(() -> String.format("Packet dump follows; packet_type='%d', packet_type_hex='%x', predefined_type_name='%s', length='%d'",
                 packetType(), packetType(), LoggerHelper.packetTypeName(packetType()), wpos()));
         Logging.logBytes(logger, this.array(), this.wpos());
