@@ -59,7 +59,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
     @Override
     public void writePacket(Packet packet) throws IOException {
         logger.info("Writing packet");
-        packet.dump();
+        packet.dump(logger);
         writePacketBytes(packet.array(), packet.wpos());
     }
 
