@@ -8,13 +8,14 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TransportLayerIOTest {
 
+    // positive test case, where the padding is more than 4 bytes long, and ends at the "first" block
+    // - the block that contains the 4th byte, which is the second block for a single byte packet
     @Test
-    public void testClearTextReadWithoutBlockSize() {
+    public void testClearTextRead() {
         TransportLayerInput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
         GrowingInputStream is = new GrowingInputStream();
 
@@ -24,9 +25,11 @@ public class TransportLayerIOTest {
             fail(e.getMessage());
         }
 
-        is.addInt(2);
-        is.addByte((byte) 0);
-        is.addByte((byte) 42);
+        is.addInt(12);
+        is.addByte((byte) 4);
+        is.addByte((byte) 42); // payload
+        is.addSecureBytes(6); // payload
+        is.addSecureBytes(4); // padding
 
         Packet readPacket;
         try {
@@ -36,11 +39,125 @@ public class TransportLayerIOTest {
             return; // already failed, make Java happy
         }
 
-        assertEquals(1, readPacket.wpos());
+        assertEquals(7, readPacket.wpos());
         assertEquals(42, readPacket.packetType());
         try {
             assertEquals(0, is.available(), "not the whole data was read");
         } catch (IOException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void readClearTextPacketWithoutEndingOnBlockSizeFails() {
+        TransportLayerInput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        GrowingInputStream is = new GrowingInputStream();
+
+        try {
+            subject.setInputStream(is);
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+
+        is.addInt(6);
+        is.addByte((byte) 4);
+        is.addByte((byte) 42);
+        is.addSecureBytes(4);
+
+        TransportLayerException exception = assertThrows(
+                TransportLayerException.class,
+                subject::readPacket,
+                "Expected readPacket() to throw, but it didn't"
+        );
+
+        assertTrue(exception.getMessage().contains("Read packet size is not multiple of block size"));
+    }
+
+    @Test
+    public void readClearTextPacketWithTooSmallPaddingFails() {
+        TransportLayerInput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        GrowingInputStream is = new GrowingInputStream();
+
+        try {
+            subject.setInputStream(is);
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+
+        is.addInt(12);
+        is.addByte((byte) 3);
+        is.addByte((byte) 42);
+        is.addSecureBytes(7);
+        is.addSecureBytes(3);
+
+        TransportLayerException exception = assertThrows(
+                TransportLayerException.class,
+                subject::readPacket,
+                "Expected readPacket() to throw, but it didn't"
+        );
+
+        assertTrue(exception.getMessage().contains("Padding length is smaller than"));
+    }
+
+    @Test
+    public void writeAndReadClearTextPacketWithOneByte() {
+
+        TransportLayerInputOutput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        GrowingInputStream is = new GrowingInputStream();
+        try {
+            subject.setInputStream(is);
+            subject.setOutputStream(is.getOutputStream());
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            Packet packet = new Packet();
+            packet.putByte((byte) 42);
+            subject.writePacket(packet);
+        } catch (IOException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            Packet packet = subject.readPacket();
+            assertEquals(1, packet.wpos());
+            assertEquals(42, packet.packetType());
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    @Test
+    public void writeAndReadClearTextPacketWithAlmostBlockSizeLength() {
+        TransportLayerInputOutput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        GrowingInputStream is = new GrowingInputStream();
+        try {
+            subject.setInputStream(is);
+            subject.setOutputStream(is.getOutputStream());
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            Packet packet = new Packet();
+            packet.putByte((byte) 42);
+            packet.putInt(5);
+            packet.putShort((short) 6);
+            subject.writePacket(packet);
+        } catch (IOException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            Packet packet = subject.readPacket();
+            assertEquals(7, packet.wpos());
+            assertEquals(42, packet.packetType());
+            assertEquals(42, packet.getByte());
+            assertEquals(0, packet.getByte());
+            assertEquals(0, packet.getByte());
+            assertEquals(5 * 256 * 256 + 6, packet.getInt());
+        } catch (TransportLayerException e) {
             fail(e.getMessage());
         }
     }
