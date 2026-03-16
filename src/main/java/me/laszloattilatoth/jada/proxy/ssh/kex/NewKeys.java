@@ -13,6 +13,8 @@ public class NewKeys {
     public CipherSpec cipherSpec;
     public MacSpec macSpec;
 
+    public SessionKeys sessionKeys;
+
     public NewKeys() {
         cipherSpec = CipherSpec.CIPHER_NONE;
     }
