@@ -41,10 +41,12 @@ public class TransportLayerIO implements TransportLayerInputOutput {
 
     @Override
     public void addReceiverNewKeys(NewKeys newKeys) {
+        receiverNewKeys = newKeys;
     }
 
     @Override
     public void addSenderNewKeys(NewKeys newKeys) {
+        senderNewKeys = newKeys;
         encryptedReadMode = receiverNewKeys.cipherSpec == CipherSpec.CIPHER_NONE;
     }
 
@@ -148,7 +150,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
 
     @Override
     public void sshMsgNewKeysReceived() {
-
+        encryptedReadMode = receiverNewKeys.cipherSpec == CipherSpec.CIPHER_NONE;
     }
 
     @Override

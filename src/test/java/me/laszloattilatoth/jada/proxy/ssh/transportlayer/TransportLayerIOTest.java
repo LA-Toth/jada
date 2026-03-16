@@ -3,10 +3,17 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
+import me.laszloattilatoth.jada.core.TestRandom;
+import me.laszloattilatoth.jada.proxy.ssh.kex.KexOutput;
+import me.laszloattilatoth.jada.proxy.ssh.kex.NewKeys;
+import me.laszloattilatoth.jada.proxy.ssh.kex.SessionKeys;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherRegistry;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
 import me.laszloattilatoth.jada.util.logging.LoggerFactory;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,7 +23,7 @@ public class TransportLayerIOTest {
     // - the block that contains the 4th byte, which is the second block for a single byte packet
     @Test
     public void testClearTextRead() {
-        TransportLayerInput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        TransportLayerInput subject = createTransportLayerIO();
         GrowingInputStream is = new GrowingInputStream();
 
         try {
@@ -50,7 +57,7 @@ public class TransportLayerIOTest {
 
     @Test
     public void readClearTextPacketWithoutEndingOnBlockSizeFails() {
-        TransportLayerInput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        TransportLayerInput subject = createTransportLayerIO();
         GrowingInputStream is = new GrowingInputStream();
 
         try {
@@ -75,7 +82,7 @@ public class TransportLayerIOTest {
 
     @Test
     public void readClearTextPacketWithTooSmallPaddingFails() {
-        TransportLayerInput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        TransportLayerInput subject = createTransportLayerIO();
         GrowingInputStream is = new GrowingInputStream();
 
         try {
@@ -101,8 +108,7 @@ public class TransportLayerIOTest {
 
     @Test
     public void writeAndReadClearTextPacketWithOneByte() {
-
-        TransportLayerInputOutput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        TransportLayerInputOutput subject = createTransportLayerIO();
         GrowingInputStream is = new GrowingInputStream();
         try {
             subject.setInputStream(is);
@@ -130,7 +136,7 @@ public class TransportLayerIOTest {
 
     @Test
     public void writeAndReadClearTextPacketWithAlmostBlockSizeLength() {
-        TransportLayerInputOutput subject = new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+        TransportLayerInputOutput subject = createTransportLayerIO();
         GrowingInputStream is = new GrowingInputStream();
         try {
             subject.setInputStream(is);
@@ -160,5 +166,116 @@ public class TransportLayerIOTest {
         } catch (TransportLayerException e) {
             fail(e.getMessage());
         }
+    }
+
+
+    /// Teest the case when the writer is still in cleartext mode
+    /// but the reader is prepared for encryption; and the change is not yet happened
+    @Test
+    public void writeAndReadClearTextPacketWithPreppedReaderEncryption() {
+        TransportLayerOutput writer = createTransportLayerIO();
+        TransportLayerInput reader = createTransportLayerIO();
+        reader.addReceiverNewKeys(createNewKeysForEncryption());
+
+        GrowingInputStream is = new GrowingInputStream();
+
+        try {
+            reader.setInputStream(is);
+            writer.setOutputStream(is.getOutputStream());
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            Packet packet = new Packet();
+            packet.putByte((byte) 42);
+            writer.writePacket(packet);
+        } catch (IOException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            Packet packet = reader.readPacket();
+            assertEquals(1, packet.wpos());
+            assertEquals(42, packet.packetType());
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /// Teest the case when the reader is still in cleartext mode
+    /// but the writer is encrypting
+    @Test
+    public void readEncryptedPacketWithCleartextReaderFails() {
+        TransportLayerOutput writer = createTransportLayerIO();
+        TransportLayerInput reader = createTransportLayerIO();
+        writer.addSenderNewKeys(createNewKeysForEncryption());
+        writer.sshMsgNewKeysSent();
+
+        GrowingInputStream is = new GrowingInputStream();
+
+        try {
+            reader.setInputStream(is);
+            writer.setOutputStream(is.getOutputStream());
+        } catch (TransportLayerException e) {
+            fail(e.getMessage());
+        }
+
+        try {
+            Packet packet = new Packet();
+            packet.putByte((byte) 42);
+            writer.writePacket(packet);
+        } catch (IOException e) {
+            fail(e.getMessage());
+        }
+
+        TransportLayerException exception = assertThrows(
+                TransportLayerException.class,
+                reader::readPacket,
+                "Expected readPacket() to throw, but it didn't"
+        );
+
+
+        // TODO: update this
+        assertTrue(exception.getMessage().contains("Padding length is smaller than"));
+    }
+
+    void writeAndReadEncryptedPacketIsSuccessful() {
+        // TODO
+    }
+
+    private TransportLayerIO createTransportLayerIO() {
+        return new TransportLayerIO(LoggerFactory.getNulLogger("test"));
+    }
+
+    private NewKeys createNewKeysForEncryption() {
+        CipherSpec cipherSpec = CipherRegistry.byName("aes128-ctr");
+
+        KexOutput output = createKexOutput(cipherSpec);
+
+        SessionKeys sessionKeys = SessionKeys.createClientSessionKeys(output); // server's keys are the same here
+
+        NewKeys newKeys = new NewKeys();
+        newKeys.cipherSpec = cipherSpec;
+        newKeys.sessionKeys = sessionKeys;
+
+
+        return newKeys;
+    }
+
+
+    private KexOutput createKexOutput(CipherSpec cipherSpec) {
+        SecureRandom secureRandom = new TestRandom(0x22deada458beefL);
+        byte[] iv = new byte[cipherSpec.ivLen()];
+        byte[] enc_key = new byte[cipherSpec.keyLen()];
+
+        // TODO: actually implement this
+        byte[] mac_key = new byte[42];
+
+        secureRandom.nextBytes(iv);
+        secureRandom.nextBytes(enc_key);
+        secureRandom.nextBytes(mac_key);
+
+        return new KexOutput(iv, iv, enc_key, enc_key, mac_key, mac_key);
     }
 }
