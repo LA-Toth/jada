@@ -4,9 +4,12 @@
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.core.TestRandom;
+import me.laszloattilatoth.jada.proxy.ssh.core.Direction;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CryptoContext;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CryptoContextFactory;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KexOutput;
-import me.laszloattilatoth.jada.proxy.ssh.kex.NewKeys;
-import me.laszloattilatoth.jada.proxy.ssh.kex.SessionKeys;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CipherSuite;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.SessionKeys;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
 import me.laszloattilatoth.jada.util.logging.LoggerFactory;
@@ -175,7 +178,7 @@ public class TransportLayerIOTest {
     public void writeAndReadClearTextPacketWithPreppedReaderEncryption() {
         TransportLayerOutput writer = createTransportLayerIO();
         TransportLayerInput reader = createTransportLayerIO();
-        reader.addReceiverNewKeys(createNewKeysForEncryption());
+        reader.addInboundCryptoContext(createCryptoContext(Direction.IN));
 
         GrowingInputStream is = new GrowingInputStream();
 
@@ -209,7 +212,7 @@ public class TransportLayerIOTest {
     public void readEncryptedPacketWithCleartextReaderFails() {
         TransportLayerOutput writer = createTransportLayerIO();
         TransportLayerInput reader = createTransportLayerIO();
-        writer.addSenderNewKeys(createNewKeysForEncryption());
+        writer.addOutboundCryptoContext(createCryptoContext(Direction.OUT));
         writer.sshMsgNewKeysSent();
 
         GrowingInputStream is = new GrowingInputStream();
@@ -248,19 +251,17 @@ public class TransportLayerIOTest {
         return new TransportLayerIO(LoggerFactory.getNulLogger("test"));
     }
 
-    private NewKeys createNewKeysForEncryption() {
+    private CryptoContext createCryptoContext(Direction direction) {
         CipherSpec cipherSpec = CipherRegistry.byName("aes128-ctr");
+        CipherSuite suite = new CipherSuite();
+        suite.setCipherSpec(cipherSpec);
 
         KexOutput output = createKexOutput(cipherSpec);
 
         SessionKeys sessionKeys = SessionKeys.createClientSessionKeys(output); // server's keys are the same here
 
-        NewKeys newKeys = new NewKeys();
-        newKeys.cipherSpec = cipherSpec;
-        newKeys.sessionKeys = sessionKeys;
 
-
-        return newKeys;
+       return new CryptoContextFactory().createContext(suite, sessionKeys, direction);
     }
 
 

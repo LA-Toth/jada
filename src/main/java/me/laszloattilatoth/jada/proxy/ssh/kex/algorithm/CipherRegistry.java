@@ -42,6 +42,17 @@ public class CipherRegistry {
 
     private static void put(String name, int blockSize, int keyLen, int ivLen, int authLen, long flags) {
         int nameId = Name.getNameId(name);
-        list.put(nameId, new CipherSpec(name, nameId, blockSize, keyLen, ivLen != 0 ? ivLen : blockSize, authLen, flags));
+
+        String transformation = "";
+        if (flags == (CipherSpec.FLAG_3DES | CipherSpec.FLAG_CBC)) {
+            transformation = "3DES/CBC/NoPadding";
+        } else if (flags == (CipherSpec.FLAG_AES | CipherSpec.FLAG_CBC)) {
+            transformation = "AES/CBC/NoPadding";
+        } else if (flags == (CipherSpec.FLAG_AES | CipherSpec.FLAG_AES_CTR)) {
+            transformation = "AES/CTR/NoPadding";
+        }
+
+        list.put(nameId, new CipherSpec(name, nameId, blockSize, keyLen, ivLen != 0 ? ivLen : blockSize, authLen,
+                flags, transformation, (flags & CipherSpec.FLAG_AES) == CipherSpec.FLAG_AES ? "AES" : "3DES"));
     }
 }

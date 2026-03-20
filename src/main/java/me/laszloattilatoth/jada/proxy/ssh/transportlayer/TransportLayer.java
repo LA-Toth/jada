@@ -5,9 +5,13 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.proxy.core.LoggerHolder;
 import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
+import me.laszloattilatoth.jada.proxy.ssh.core.Direction;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.core.SshProxy;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CryptoContextFactory;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.SessionKeys;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
+import me.laszloattilatoth.jada.proxy.ssh.kex.KexOutput;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
 import me.laszloattilatoth.jada.util.Logging;
@@ -280,5 +284,19 @@ public class TransportLayer implements LoggerHolder {
 
     public void encryptionChange() {
         logger.info("Switching to encrypted mode");
+    }
+
+    public void setKexOutput(KexOutput kexOutput) {
+        CryptoContextFactory factory = new CryptoContextFactory();
+
+        this.io.addInboundCryptoContext(factory.createContext(kex().cipherSuiteByDirection(Direction.IN),
+                SessionKeys.createInboundSessionKeys(kexOutput, side),
+                Direction.IN
+        ));
+
+        this.io.addOutboundCryptoContext(factory.createContext(kex().cipherSuiteByDirection(Direction.OUT),
+                SessionKeys.createOutboundSessionKeys(kexOutput, side),
+                Direction.IN
+        ));
     }
 }

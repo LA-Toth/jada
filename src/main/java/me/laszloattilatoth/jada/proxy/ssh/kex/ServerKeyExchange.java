@@ -48,7 +48,7 @@ public class ServerKeyExchange extends KeyExchange {
             setKexOutput(new KexOutputFactory().create(dhKex().getHash(), dhKex().getK(),
                     kexState.getOwnKexInit(),
                     kexState.getOwnKexInit(),
-                    clientNewKeys(), serverNewKeys()));
+                    clientCipherSuite(), serverCipherSuite()));
         } catch (TransportLayerException e) {
             throw e;
         } catch (Exception e) {

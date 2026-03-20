@@ -6,13 +6,13 @@ package me.laszloattilatoth.jada.proxy.ssh.kex;
 import me.laszloattilatoth.jada.proxy.ssh.Options;
 import me.laszloattilatoth.jada.proxy.ssh.algorithm.HostKeyAlgorithmRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.algorithm.HostKeyAlgorithmSpec;
-import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
-import me.laszloattilatoth.jada.proxy.ssh.core.Name;
-import me.laszloattilatoth.jada.proxy.ssh.core.NameListWithIds;
-import me.laszloattilatoth.jada.proxy.ssh.core.NameWithId;
+import me.laszloattilatoth.jada.proxy.ssh.core.*;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CipherSuite;
 import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.KexAlgorithmSpec;
+import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.MacRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.kex.dh.mina.AbstractDHKeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
 import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayer;
@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.security.KeyPair;
 
 public abstract class KeyExchange extends WithTransportLayer {
-    protected final NewKeys[] newKeys = new NewKeys[Constant.MODE_MAX];
+    protected final CipherSuite[] cipherSuites = new CipherSuite[Constant.MODE_MAX];
     protected final KexState kexState;
     //protected State state = State.INITIAL;
     protected NameWithId kexName;
@@ -33,28 +33,22 @@ public abstract class KeyExchange extends WithTransportLayer {
     protected KeyPair hostKey;
     protected AbstractDHKeyExchange dhKex;
 
-    private KexOutput kexOutput;
-
     public KeyExchange(TransportLayer transportLayer) {
         super(transportLayer);
         Options.SideOptions options = transportLayer.proxy().options().sideOptions(side);
         kexState = new KexState(options);
     }
 
-    public NewKeys clientNewKeys() {
-        return side.isClient() ? this.newKeys[Constant.MODE_IN] : this.newKeys[Constant.MODE_OUT];
+    public CipherSuite clientCipherSuite() {
+        return side.isClient() ? this.cipherSuites[Constant.MODE_IN] : this.cipherSuites[Constant.MODE_OUT];
     }
 
-    public NewKeys serverNewKeys() {
-        return side.isServer() ? this.newKeys[Constant.MODE_IN] : this.newKeys[Constant.MODE_OUT];
+    public CipherSuite serverCipherSuite() {
+        return side.isServer() ? this.cipherSuites[Constant.MODE_IN] : this.cipherSuites[Constant.MODE_OUT];
     }
 
-    public int outputBlockSize() {
-        if (this.newKeys[Constant.MODE_OUT] == null) {
-            return 8;
-        } else {
-            return this.newKeys[Constant.MODE_OUT].cipherSpec.blockSize();
-        }
+    public CipherSuite cipherSuiteByDirection(Direction direction) {
+        return this.cipherSuites[direction.isIn() ? Constant.MODE_IN : Constant.MODE_OUT];
     }
 
     /*
@@ -122,17 +116,17 @@ public abstract class KeyExchange extends WithTransportLayer {
             int macIdx = c2s ? KexInitEntries.ENTRY_MAC_ALGOS_C2S : KexInitEntries.ENTRY_MAC_ALGOS_S2C;
             int compIdx = c2s ? KexInitEntries.ENTRY_COMP_ALGOS_C2S : KexInitEntries.ENTRY_COMP_ALGOS_S2C;
 
-            NewKeys newkeys = new NewKeys();
-            this.newKeys[mode] = newkeys;
-            chooseEncAlg(newkeys, client, server, encIdx);
-            if (newkeys.cipherAuthLen() == 0)
-                chooseMacAlg(newkeys, client, server, macIdx);
-            chooseCompAlg(newkeys, client, server, compIdx);
+            CipherSuite cipherSuite = new CipherSuite();
+            this.cipherSuites[mode] = cipherSuite;
+            chooseEncAlg(cipherSuite, client, server, encIdx);
+            if (cipherSuite.cipherSpec() == null)
+                chooseMacAlg(cipherSuite, client, server, macIdx);
+            chooseCompAlg(cipherSuite, client, server, compIdx);
 
             logger.fine(() -> String.format("KEX algo match; kex='%s', cipher='%s', MAC='%s', compression='%s', direction='%s', side='%s'",
                     kexName.name(),
-                    newkeys.cipherSpec.name(),
-                    newkeys.macSpec.name(),
+                    cipherSuite.cipherSpec().name(),
+                    cipherSuite.macSpec().name(),
                     "none", // FIXME
                     LoggerHelper.formatSideStr(c2s),
                     side
@@ -179,22 +173,22 @@ public abstract class KeyExchange extends WithTransportLayer {
         return new NameWithId(nameId);
     }
 
-    private void chooseEncAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws
+    private void chooseEncAlg(CipherSuite suite, KexInitEntries client, KexInitEntries server, int index) throws
             KexException {
         NameWithId encAlg = chooseAlg(client, server, index, "No matching Encryption algorithm");
-        newKeys.setEncryption(encAlg);
+        suite.setCipherSpec(CipherRegistry.byId(encAlg.nameId()));
     }
 
-    private void chooseMacAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws
+    private void chooseMacAlg(CipherSuite suite, KexInitEntries client, KexInitEntries server, int index) throws
             KexException {
         NameWithId macAlg = chooseAlg(client, server, index, "No matching MAC algorithm");
-        newKeys.setMac(macAlg);
+        suite.setMacSpec(MacRegistry.byId(macAlg.nameId()));
     }
 
-    private void chooseCompAlg(NewKeys newKeys, KexInitEntries client, KexInitEntries server, int index) throws
+    private void chooseCompAlg(CipherSuite suite, KexInitEntries client, KexInitEntries server, int index) throws
             KexException {
         NameWithId compAlg = chooseAlg(client, server, index, "No matching Compression algorithm");
-        newKeys.setCompression(compAlg);
+        // suite.setCompression(compAlg);
     }
 
     private void prepareDH() {
@@ -214,12 +208,9 @@ public abstract class KeyExchange extends WithTransportLayer {
         transportLayer().encryptionChange();
     }
 
-    public KexOutput getKexOutput() {
-        return kexOutput;
-    }
 
     protected void setKexOutput(KexOutput kexOutput) {
-        this.kexOutput = kexOutput;
+        this.transportLayer().setKexOutput(kexOutput);
     }
 
     /*

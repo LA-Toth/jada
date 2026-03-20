@@ -3,19 +3,20 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.kex;
 
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CipherSuite;
 import org.apache.sshd.common.digest.Digest;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
 import java.util.Arrays;
 
 public class KexOutputFactory {
-    public final KexOutput create(Digest hash, byte[] K, byte[] H, byte[] sessionId, NewKeys clientNewKeys, NewKeys serverNewKeys) throws Exception {
-        byte[] iv_c2s = deriveKey(hash, K, H, 'A', sessionId, clientNewKeys.cipherSpec.ivLen());
-        byte[] iv_s2c = deriveKey(hash, K, H, 'B', sessionId, serverNewKeys.cipherSpec.ivLen());
-        byte[] enc_key_c2s = deriveKey(hash, K, H, 'C', sessionId, clientNewKeys.cipherKeyLen());
-        byte[] enc_key_s2c = deriveKey(hash, K, H, 'D', sessionId, serverNewKeys.cipherKeyLen());
-        byte[] integrity_key_c2s = deriveKey(hash, K, H, 'E', sessionId, clientNewKeys.macSpec.keyLen());
-        byte[] integrity_key_s2c = deriveKey(hash, K, H, 'F', sessionId, serverNewKeys.macSpec.keyLen());
+    public final KexOutput create(Digest hash, byte[] K, byte[] H, byte[] sessionId, CipherSuite clientSuite, CipherSuite serverSuite) throws Exception {
+        byte[] iv_c2s = deriveKey(hash, K, H, 'A', sessionId, clientSuite.cipherSpec().ivLen());
+        byte[] iv_s2c = deriveKey(hash, K, H, 'B', sessionId, serverSuite.cipherSpec().ivLen());
+        byte[] enc_key_c2s = deriveKey(hash, K, H, 'C', sessionId, clientSuite.cipherSpec().keyLen());
+        byte[] enc_key_s2c = deriveKey(hash, K, H, 'D', sessionId, serverSuite.cipherSpec().keyLen());
+        byte[] integrity_key_c2s = deriveKey(hash, K, H, 'E', sessionId, clientSuite.macSpec().keyLen());
+        byte[] integrity_key_s2c = deriveKey(hash, K, H, 'F', sessionId, serverSuite.macSpec().keyLen());
 
         return new KexOutput(iv_c2s, iv_s2c, enc_key_c2s, enc_key_s2c, integrity_key_c2s, integrity_key_s2c);
     }

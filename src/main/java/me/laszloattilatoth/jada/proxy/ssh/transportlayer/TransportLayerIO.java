@@ -1,8 +1,9 @@
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
+import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.SecureRandomWithByteArray;
-import me.laszloattilatoth.jada.proxy.ssh.kex.NewKeys;
-import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CryptoContext;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CryptoContextPair;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -13,11 +14,9 @@ import java.util.logging.Logger;
 
 public class TransportLayerIO implements TransportLayerInputOutput {
     private static final SecureRandom secureRandom = new SecureRandom();
-    private boolean encryptedWriteMode = false;
-    private boolean encryptedReadMode = false;
     protected Logger logger = null;
-    protected NewKeys receiverNewKeys = new NewKeys();
-    protected NewKeys senderNewKeys = new NewKeys();
+    protected CryptoContextPair inboundContextPair = new CryptoContextPair();
+    protected CryptoContextPair outboundContextPair = new CryptoContextPair();
     private DataInputStream dataInputStream = null;
     private DataOutputStream dataOutputStream = null;
 
@@ -40,19 +39,19 @@ public class TransportLayerIO implements TransportLayerInputOutput {
     }
 
     @Override
-    public void addReceiverNewKeys(NewKeys newKeys) {
-        receiverNewKeys = newKeys;
+    public void addInboundCryptoContext(CryptoContext context) {
+        inboundContextPair.pending = context;
     }
 
     @Override
-    public void addSenderNewKeys(NewKeys newKeys) {
-        senderNewKeys = newKeys;
-        encryptedReadMode = receiverNewKeys.cipherSpec == CipherSpec.CIPHER_NONE;
+    public void addOutboundCryptoContext(CryptoContext context) {
+        outboundContextPair.pending = context;
     }
 
     @Override
     public void sshMsgNewKeysSent() {
-        encryptedWriteMode = senderNewKeys.cipherSpec == CipherSpec.CIPHER_NONE;
+        outboundContextPair.current = inboundContextPair.pending;
+        outboundContextPair.pending = null;
     }
 
     /**
@@ -104,7 +103,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
         buffer.putByte((byte) paddingLength);
         buffer.putRawBytes(bytes, 0, payloadSize);
 
-        if (encryptedWriteMode) {
+        if (outboundContextPair.current != null) {
             SecureRandomWithByteArray secureRandomBA = new SecureRandomWithByteArray(payloadSize);
             buffer.putRawBytes(secureRandomBA.getSecureBytes());
         } else {
@@ -123,8 +122,10 @@ public class TransportLayerIO implements TransportLayerInputOutput {
     }
 
     protected int getPaddingLength(int payloadSize) {
+        final boolean encryptedWriteMode = outboundContextPair.current != null;
+
         int withHeaders = payloadSize + 1 + 4;
-        int blockSize = senderNewKeys.cipherBlockSize();
+        int blockSize = encryptedWriteMode ? outboundContextPair.current.cipher().getBlockSize() : 8;
         int lessThenBlockSizeLen = withHeaders % blockSize;
         int paddingLength = 0;
         if (encryptedWriteMode) {
@@ -132,7 +133,6 @@ public class TransportLayerIO implements TransportLayerInputOutput {
             paddingLength = Math.max(blockSize, Math.max(lessThenBlockSizeLen, secureRandom.nextInt(255))) / blockSize * blockSize;
         } else {
             // pointless to have any extra beyond to reach the block size
-            // as this is unencrypted (except 4 bytes, as for some reason it's expected by OpenSSH, see below)
             if (lessThenBlockSizeLen > 0) {
                 paddingLength = blockSize - lessThenBlockSizeLen;
             }
@@ -142,7 +142,6 @@ public class TransportLayerIO implements TransportLayerInputOutput {
             paddingLength += blockSize - withHeaders - paddingLength;
         }
         if (paddingLength < 4) {
-            // fix for OpenSSH
             paddingLength += blockSize;
         }
         return paddingLength;
@@ -150,13 +149,14 @@ public class TransportLayerIO implements TransportLayerInputOutput {
 
     @Override
     public void sshMsgNewKeysReceived() {
-        encryptedReadMode = receiverNewKeys.cipherSpec == CipherSpec.CIPHER_NONE;
+        inboundContextPair.current = outboundContextPair.pending;
+        inboundContextPair.pending = null;
     }
 
     @Override
     public Packet readPacket() throws TransportLayerException {
         try {
-            if (encryptedReadMode) {
+            if (inboundContextPair.current != null) {
                 return readEncryptedPacket();
             } else {
                 return readClearTextPacket();
@@ -173,7 +173,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
         logger.info(() -> String.format("Read packet header; length='%d', hex_length='0x%x', padding_length='%d'",
                 packetLength, packetLength, paddingLength));
 
-        if ((packetLength + 4) % receiverNewKeys.cipherBlockSize() != 0) {
+        if ((packetLength + 4) % Constant.CLEAR_TEXT_BLOCK_SIZE != 0) {
             throw new TransportLayerException("Read packet size is not multiple of block size");
         }
 
@@ -191,7 +191,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
 
     protected Packet readEncryptedPacket() throws IOException {
         logger.info("Reading next encrypted packet");
-        byte[] data = dataInputStream.readNBytes(receiverNewKeys.cipherBlockSize());
+        byte[] data = dataInputStream.readNBytes(inboundContextPair.current.cipher().getBlockSize());
 
         return new Packet(data);
     }

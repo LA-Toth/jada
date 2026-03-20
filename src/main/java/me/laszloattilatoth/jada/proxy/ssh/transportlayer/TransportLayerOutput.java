@@ -3,7 +3,7 @@
 
 package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
-import me.laszloattilatoth.jada.proxy.ssh.kex.NewKeys;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CryptoContext;
 import org.apache.sshd.common.util.buffer.Buffer;
 
 import java.io.IOException;
@@ -16,9 +16,9 @@ public interface TransportLayerOutput {
      * Sets (stores) the new keys for upcoming encryption change. The old keys are used till the call
      * of sshMsgNewKeysReceived().
      *
-     * @param newKeys
+     * @param context
      */
-    void addSenderNewKeys(NewKeys newKeys);
+    void addOutboundCryptoContext(CryptoContext context);
 
     void sshMsgNewKeysSent();
 
