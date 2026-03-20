@@ -22,6 +22,8 @@ public class Constant {
     public static final byte[] SSH_VERSION_PREFIX_BYTES = SSH_VERSION_PREFIX.getBytes();
     public static final String SSH_ID_STRING = "SSH-2.0-Jada";
 
+    public static final int CLEAR_TEXT_BLOCK_SIZE = 8;
+
     /*
         RFC 2450  SSH Protocol Assigned Numbers
         4.1.  Message Numbers

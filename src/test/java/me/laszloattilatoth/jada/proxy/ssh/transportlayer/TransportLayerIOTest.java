@@ -5,8 +5,8 @@ package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
 
 import me.laszloattilatoth.jada.core.TestRandom;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KexOutput;
-import me.laszloattilatoth.jada.proxy.ssh.kex.NewKeys;
-import me.laszloattilatoth.jada.proxy.ssh.kex.SessionKeys;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.CipherSuite;
+import me.laszloattilatoth.jada.proxy.ssh.crypto.SessionKeys;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherRegistry;
 import me.laszloattilatoth.jada.proxy.ssh.kex.algorithm.CipherSpec;
 import me.laszloattilatoth.jada.util.logging.LoggerFactory;
@@ -175,7 +175,7 @@ public class TransportLayerIOTest {
     public void writeAndReadClearTextPacketWithPreppedReaderEncryption() {
         TransportLayerOutput writer = createTransportLayerIO();
         TransportLayerInput reader = createTransportLayerIO();
-        reader.addReceiverNewKeys(createNewKeysForEncryption());
+        reader.addInboundSessionKeys(createNewKeysForEncryption());
 
         GrowingInputStream is = new GrowingInputStream();
 
@@ -248,14 +248,14 @@ public class TransportLayerIOTest {
         return new TransportLayerIO(LoggerFactory.getNulLogger("test"));
     }
 
-    private NewKeys createNewKeysForEncryption() {
+    private CipherSuite createNewKeysForEncryption() {
         CipherSpec cipherSpec = CipherRegistry.byName("aes128-ctr");
 
         KexOutput output = createKexOutput(cipherSpec);
 
         SessionKeys sessionKeys = SessionKeys.createClientSessionKeys(output); // server's keys are the same here
 
-        NewKeys newKeys = new NewKeys();
+        CipherSuite newKeys = new CipherSuite();
         newKeys.cipherSpec = cipherSpec;
         newKeys.sessionKeys = sessionKeys;
 
