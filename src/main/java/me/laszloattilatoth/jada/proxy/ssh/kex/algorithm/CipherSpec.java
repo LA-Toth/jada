@@ -6,7 +6,7 @@ package me.laszloattilatoth.jada.proxy.ssh.kex.algorithm;
 import me.laszloattilatoth.jada.proxy.ssh.core.Name;
 
 public record CipherSpec(String name, int nameId, int blockSize, int keyLen, int ivLen, int authLen, long flags,
-                         String  cipherTransformation, String secretKeyAlgorithm) {
+                         String cipherTransformation, String secretKeyAlgorithm) {
     // flags are used to map the name to the actual algorithms
     public static int FLAG_CBC = 1;
     public static int FLAG_CHACHAPOLY = 1 << 1; // unused, exists in OpenSSH
