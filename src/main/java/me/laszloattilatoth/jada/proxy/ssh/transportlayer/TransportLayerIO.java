@@ -156,7 +156,7 @@ public class TransportLayerIO implements TransportLayerInputOutput {
     @Override
     public Packet readPacket() throws TransportLayerException {
         try {
-            if (inboundContextPair.current == null) {
+            if (inboundContextPair.current != null) {
                 return readEncryptedPacket();
             } else {
                 return readClearTextPacket();
