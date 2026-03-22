@@ -45,10 +45,14 @@ public class ServerKeyExchange extends KeyExchange {
             );
             packet.getByte();
             dhKex().processKexDhInit(packet);
-            setKexOutput(new KexOutputFactory().create(dhKex().getHash(), dhKex().getK(),
-                    kexState.getOwnKexInit(),
-                    kexState.getOwnKexInit(),
-                    clientCipherSuite(), serverCipherSuite()));
+            setKexOutput(
+                    new KexOutputFactory().create(
+                            dhKex().getHash(),
+                            dhKex().getK(),
+                            kexState.getOwnKexInit(), // TODO: rekey support
+                            kexState.getOwnKexInit(),
+                            clientCipherSuite(),
+                            serverCipherSuite()));
         } catch (TransportLayerException e) {
             throw e;
         } catch (Exception e) {

@@ -289,14 +289,18 @@ public class TransportLayer implements LoggerHolder {
     public void setKexOutput(KexOutput kexOutput) {
         CryptoContextFactory factory = new CryptoContextFactory();
 
-        this.io.addInboundCryptoContext(factory.createContext(kex().cipherSuiteByDirection(Direction.IN),
-                SessionKeys.createInboundSessionKeys(kexOutput, side),
-                Direction.IN
-        ));
+        this.io.addInboundCryptoContext(
+                factory.createContext(
+                        kex().cipherSuiteByDirection(Direction.IN),
+                        SessionKeys.createInboundSessionKeys(kexOutput, side),
+                        Direction.IN
+                ));
 
-        this.io.addOutboundCryptoContext(factory.createContext(kex().cipherSuiteByDirection(Direction.OUT),
-                SessionKeys.createOutboundSessionKeys(kexOutput, side),
-                Direction.IN
-        ));
+        this.io.addOutboundCryptoContext(
+                factory.createContext(
+                        kex().cipherSuiteByDirection(Direction.OUT),
+                        SessionKeys.createOutboundSessionKeys(kexOutput, side),
+                        Direction.IN
+                ));
     }
 }
