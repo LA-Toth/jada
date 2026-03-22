@@ -117,7 +117,7 @@ public class StoringTransportLayer extends TransportLayer {
         }
 
         @Override
-        protected Packet readEncryptedPacket() throws IOException {
+        protected Packet readEncryptedPacket() throws IOException, TransportLayerException {
             Packet packet = super.readEncryptedPacket();
             writeBytesToFile(packet.array(), packet.wpos(), false);
             return packet;

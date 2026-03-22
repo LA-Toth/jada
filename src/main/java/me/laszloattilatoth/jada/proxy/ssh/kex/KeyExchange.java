@@ -119,7 +119,7 @@ public abstract class KeyExchange extends WithTransportLayer {
             CipherSuite cipherSuite = new CipherSuite();
             this.cipherSuites[mode] = cipherSuite;
             chooseEncAlg(cipherSuite, client, server, encIdx);
-            if (cipherSuite.cipherSpec() == null)
+            if (cipherSuite.cipherSpec() != null)
                 chooseMacAlg(cipherSuite, client, server, macIdx);
             chooseCompAlg(cipherSuite, client, server, compIdx);
 
@@ -205,7 +205,7 @@ public abstract class KeyExchange extends WithTransportLayer {
 
     public void newKeysHandler(Packet packet) {
         transportLayer().unregisterHandler(Constant.SSH_MSG_NEWKEYS);
-        transportLayer().encryptionChange();
+        transportLayer().newKeysReceived();
     }
 
 

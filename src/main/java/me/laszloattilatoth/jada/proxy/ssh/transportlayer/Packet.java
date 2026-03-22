@@ -28,8 +28,8 @@ public class Packet extends ByteArrayBuffer {
         return available() == 0;
     }
 
-    public byte packetType() {
-        return array()[0];
+    public int packetType() {
+         return array()[0] & 0xff;
     }
 
     public byte[] getCompactArray() {

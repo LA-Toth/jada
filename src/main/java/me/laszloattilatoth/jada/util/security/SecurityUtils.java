@@ -22,10 +22,13 @@ import java.util.Properties;
 
 public final class SecurityUtils {
     public static KeyPair loadHostKey(String keyType) {
-        return loadHostKey(keyType, PathUtils.expandUser("~/.config/jadfa"));
+        return loadHostKey(keyType,  System.getProperty("ssh.hostkeys.dir", PathUtils.expandUser("~/.config/jada")));
     }
 
     public static KeyPair loadHostKey(String keyType, String baseDir) {
+        if (baseDir == null) {
+            return loadHostKey(keyType);
+        }
         try {
             for (KeyPair kp : getServerIdentities(baseDir)) {
                 if (KeyUtils.getKeyType(kp).equals(keyType))

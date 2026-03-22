@@ -8,6 +8,7 @@ import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 
+import javax.crypto.ShortBufferException;
 import java.io.*;
 import java.security.SecureRandom;
 import java.util.logging.Logger;
@@ -189,10 +190,17 @@ public class TransportLayerIO implements TransportLayerInputOutput {
         return new Packet(data);
     }
 
-    protected Packet readEncryptedPacket() throws IOException {
+    protected Packet readEncryptedPacket() throws IOException, TransportLayerException {
         logger.info("Reading next encrypted packet");
         byte[] data = dataInputStream.readNBytes(inboundContextPair.current.cipher().getBlockSize());
+        byte[] output = new byte[inboundContextPair.current.cipher().getBlockSize()];
+        try {
+            this.inboundContextPair.current.cipher().update(data, 0, data.length, output);
+        } catch (ShortBufferException e) {
+            throw new TransportLayerException(e.getMessage());
+        }
 
-        return new Packet(data);
+
+        return new Packet(output);
     }
 }

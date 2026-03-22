@@ -210,7 +210,7 @@ public class TransportLayer implements LoggerHolder {
     public void readAndHandlePacket() throws IOException, TransportLayerException {
         Packet packet = this.io.readPacket();
         packet.dump();
-        byte packetType = packet.packetType();
+        int packetType = packet.packetType();
         boolean shouldSkip = skipPackets > 0;
         logger.info(() ->
                 String.format("%s packet; type='%d', hex_type='%x', type_name='%s', predefined_type_name='%s', length='%d'",
@@ -268,7 +268,7 @@ public class TransportLayer implements LoggerHolder {
     }
 
     private void processMsgUnimplemented(Packet packet) {
-        byte packetType = packet.packetType();
+        int packetType = packet.packetType();
         logger.info(() -> String.format("Processing unimplemented packet; type='%d', hex_type='%x'",
                 packetType, packetType));
     }
@@ -282,8 +282,9 @@ public class TransportLayer implements LoggerHolder {
         replayPackets.add(packet);
     }
 
-    public void encryptionChange() {
+    public void newKeysReceived() {
         logger.info("Switching to encrypted mode");
+        this.io.sshMsgNewKeysReceived();
     }
 
     public void setKexOutput(KexOutput kexOutput) {
@@ -300,7 +301,7 @@ public class TransportLayer implements LoggerHolder {
                 factory.createContext(
                         kex().cipherSuiteByDirection(Direction.OUT),
                         SessionKeys.createOutboundSessionKeys(kexOutput, side),
-                        Direction.IN
+                        Direction.OUT
                 ));
     }
 }

@@ -58,7 +58,7 @@ public class PacketHandlerRegistry {
         packetHandlers[packet.packetType()].handle(packet);
     }
 
-    public void handlePacket(byte packetType, Packet packet) throws TransportLayerException {
+    public void handlePacket(int packetType, Packet packet) throws TransportLayerException {
         packetHandlers[packetType].handle(packet);
     }
 
