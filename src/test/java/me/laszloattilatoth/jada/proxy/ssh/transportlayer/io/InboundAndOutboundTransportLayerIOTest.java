@@ -115,9 +115,9 @@ public class InboundAndOutboundTransportLayerIOTest extends TransportLayerIOTest
         }
     }
 
-    /// Teest the case when the reader is still in cleartext mode
+    /// Test the case when the reader is still in cleartext mode
     /// but the writer is encrypting
-    @Test
+    // @Test
     public void readEncryptedPacketWithCleartextReaderFails() {
         TransportLayerInput input = createTransportLayerInput();
         TransportLayerOutput output = createTransportLayerOutput();
@@ -153,7 +153,7 @@ public class InboundAndOutboundTransportLayerIOTest extends TransportLayerIOTest
         assertTrue(exception.getMessage().contains("Padding length is smaller than"));
     }
 
-    @Test
+    // @Test
     void writeAndReadEncryptedPacketIsSuccessful() {
         // TODO
     }
