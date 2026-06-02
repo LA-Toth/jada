@@ -7,6 +7,8 @@ import me.laszloattilatoth.jada.proxy.ssh.core.Constant;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 import me.laszloattilatoth.jada.proxy.ssh.core.SshProxy;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.io.InboundTransportLayerIO;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.io.OutboundTransportLayerIO;
 import me.laszloattilatoth.jada.util.Logging;
 
 import java.io.File;
@@ -30,7 +32,7 @@ public class StoringTransportLayer extends TransportLayer {
     private long outputFileCount = 0;
 
     public StoringTransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
-        super(proxy, socketChannel, side, new StoringTransportLayerIO(proxy.logger()), keyExchangeFactory);
+        super(proxy, socketChannel, side, new InboundStoringTransportLayerIO(proxy.logger()), new OutboundStoringTransportLayerIO(proxy.logger()), keyExchangeFactory);
 
         SecureRandom secureRandom = new SecureRandom();
         randomIdForStorage = secureRandom.nextInt();
@@ -84,10 +86,10 @@ public class StoringTransportLayer extends TransportLayer {
         }
     }
 
-    private static class StoringTransportLayerIO extends TransportLayerIO {
+    private static class InboundStoringTransportLayerIO extends InboundTransportLayerIO {
         WeakReference<StoringTransportLayer> transportLayer;
 
-        public StoringTransportLayerIO(Logger logger) {
+        public InboundStoringTransportLayerIO(Logger logger) {
             super(logger);
         }
 
@@ -99,28 +101,49 @@ public class StoringTransportLayer extends TransportLayer {
             return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
         }
 
-        private void writeBytesToFile(byte[] bytes, int count, boolean out) throws IOException {
-            storingTransportLayer().writeBytesToFile(bytes, count, out);
+        private void writeBytesToFile(byte[] bytes, int count) throws IOException {
+            storingTransportLayer().writeBytesToFile(bytes, count, false);
         }
 
-        @Override
-        protected void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
-            writeBytesToFile(bytes, payloadSize, true);
-            super.writePacketBytes(bytes, payloadSize);
-        }
 
         @Override
         protected Packet readClearTextPacket() throws IOException, TransportLayerException {
             Packet packet = super.readClearTextPacket();
-            writeBytesToFile(packet.array(), packet.wpos(), false);
+            writeBytesToFile(packet.array(), packet.wpos());
             return packet;
         }
 
         @Override
         protected Packet readEncryptedPacket() throws IOException, TransportLayerException {
             Packet packet = super.readEncryptedPacket();
-            writeBytesToFile(packet.array(), packet.wpos(), false);
+            writeBytesToFile(packet.array(), packet.wpos());
             return packet;
         }
+    }
+    private static class OutboundStoringTransportLayerIO extends OutboundTransportLayerIO {
+        WeakReference<StoringTransportLayer> transportLayer;
+
+        public OutboundStoringTransportLayerIO(Logger logger) {
+            super(logger);
+        }
+
+        public void setTransportLayer(StoringTransportLayer transportLayer) {
+            this.transportLayer = new WeakReference<>(transportLayer);
+        }
+
+        public StoringTransportLayer storingTransportLayer() {
+            return Objects.requireNonNull(transportLayer.get(), "transport layer cannot be null");
+        }
+
+        private void writeBytesToFile(byte[] bytes, int count) throws IOException {
+            storingTransportLayer().writeBytesToFile(bytes, count, true);
+        }
+
+        @Override
+        protected void writePacketBytes(byte[] bytes, int payloadSize) throws IOException {
+            writeBytesToFile(bytes, payloadSize);
+            super.writePacketBytes(bytes, payloadSize);
+        }
+
     }
 }

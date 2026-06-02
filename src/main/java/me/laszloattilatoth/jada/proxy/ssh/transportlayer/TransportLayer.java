@@ -14,6 +14,10 @@ import me.laszloattilatoth.jada.proxy.ssh.helpers.LoggerHelper;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KexOutput;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchange;
 import me.laszloattilatoth.jada.proxy.ssh.kex.KeyExchangeFactory;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.io.InboundTransportLayerIO;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.io.OutboundTransportLayerIO;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.io.TransportLayerInput;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.io.TransportLayerOutput;
 import me.laszloattilatoth.jada.util.Logging;
 import org.apache.sshd.common.util.buffer.Buffer;
 
@@ -40,20 +44,23 @@ public class TransportLayer implements LoggerHolder {
     private final PacketHandlerRegistry packetHandlerRegistry;
     private final List<Packet> replayPackets = new ArrayList<>();
     protected KeyExchange kex;
-    protected TransportLayerInputOutput io = null;
+    protected TransportLayerInput input = null;
+    protected TransportLayerOutput output = null;
     protected int skipPackets = 0;
     private String peerIDString;
 
     public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, KeyExchangeFactory keyExchangeFactory) {
-        this(proxy, socketChannel, side, new TransportLayerIO(proxy.logger()), keyExchangeFactory);
+        this(proxy, socketChannel, side, new InboundTransportLayerIO(proxy.logger()), new OutboundTransportLayerIO(proxy.logger()), keyExchangeFactory);
     }
 
-    public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side, TransportLayerInputOutput io, KeyExchangeFactory keyExchangeFactory) {
+    public TransportLayer(SshProxy proxy, SocketChannel socketChannel, Side side,
+                          TransportLayerInput input, TransportLayerOutput output, KeyExchangeFactory keyExchangeFactory) {
         this.proxy = new WeakReference<>(proxy);
         this.logger = proxy.logger();
         this.socketChannel = socketChannel;
         this.side = side;
-        this.io = io;
+        this.input = input;
+        this.output = output;
         this.kex = keyExchangeFactory.create(this, side);
         this.packetHandlerRegistry = new PacketHandlerRegistry(logger, side, this::handleNotImplementedPacket);
 
@@ -189,8 +196,8 @@ public class TransportLayer implements LoggerHolder {
 
     private void switchToDataStreams() throws TransportLayerException {
         try {
-            this.io.setInputStream(socketChannel.socket().getInputStream());
-            this.io.setOutputStream(socketChannel.socket().getOutputStream());
+            this.input.setInputStream(socketChannel.socket().getInputStream());
+            this.output.setOutputStream(socketChannel.socket().getOutputStream());
         } catch (IOException e) {
             throw new TransportLayerException(e.getMessage());
         }
@@ -208,7 +215,7 @@ public class TransportLayer implements LoggerHolder {
     }
 
     public void readAndHandlePacket() throws IOException, TransportLayerException {
-        Packet packet = this.io.readPacket();
+        Packet packet = this.input.readPacket();
         packet.dump();
         int packetType = packet.packetType();
         boolean shouldSkip = skipPackets > 0;
@@ -235,21 +242,21 @@ public class TransportLayer implements LoggerHolder {
      * Write packet as RFC 4253, 6.  Binary Packet Protocol
      */
     public void writePacket(Packet packet) throws IOException {
-        this.io.writePacket(packet);
+        this.output.writePacket(packet);
     }
 
     /**
      * Write packet as RFC 4253, 6.  Binary Packet Protocol
      */
     public void writePacket(Buffer packet) throws IOException {
-        this.io.writePacket(packet);
+        this.output.writePacket(packet);
     }
 
     /**
      * Write packet as RFC 4253, 6.  Binary Packet Protocol
      */
     public void writePacket(byte[] bytes, int payloadSize) throws IOException {
-        this.io.writePacket(bytes, payloadSize);
+        this.output.writePacket(bytes, payloadSize);
     }
 
     private void handlePacketsInLoop() throws TransportLayerException {
@@ -284,20 +291,20 @@ public class TransportLayer implements LoggerHolder {
 
     public void newKeysReceived() {
         logger.info("Switching to encrypted mode");
-        this.io.sshMsgNewKeysReceived();
+        this.input.sshMsgNewKeysReceived();
     }
 
     public void setKexOutput(KexOutput kexOutput) {
         CryptoContextFactory factory = new CryptoContextFactory();
 
-        this.io.addInboundCryptoContext(
+        this.input.addInboundCryptoContext(
                 factory.createContext(
                         kex().cipherSuiteByDirection(Direction.IN),
                         SessionKeys.createInboundSessionKeys(kexOutput, side),
                         Direction.IN
                 ));
 
-        this.io.addOutboundCryptoContext(
+        this.output.addOutboundCryptoContext(
                 factory.createContext(
                         kex().cipherSuiteByDirection(Direction.OUT),
                         SessionKeys.createOutboundSessionKeys(kexOutput, side),

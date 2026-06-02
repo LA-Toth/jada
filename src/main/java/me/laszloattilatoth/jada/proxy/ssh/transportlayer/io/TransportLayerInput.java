@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // SPDX-FileCopyrightText: Copyright (c) Laszlo Attila Toth
 
-package me.laszloattilatoth.jada.proxy.ssh.transportlayer;
+package me.laszloattilatoth.jada.proxy.ssh.transportlayer.io;
 
 import me.laszloattilatoth.jada.proxy.ssh.crypto.CryptoContext;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.Packet;
+import me.laszloattilatoth.jada.proxy.ssh.transportlayer.TransportLayerException;
 
 import java.io.InputStream;
 

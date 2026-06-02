@@ -9,7 +9,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
 
-class GrowingInputStream extends InputStream {
+public class GrowingInputStream extends InputStream {
     private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     private int readPos = 0;
     private static final SecureRandom secureRandom = new SecureRandom();
