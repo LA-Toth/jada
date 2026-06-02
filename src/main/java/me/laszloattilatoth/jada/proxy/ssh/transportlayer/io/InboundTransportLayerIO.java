@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 
 public class InboundTransportLayerIO implements TransportLayerInput {
     private static final SecureRandom secureRandom = new SecureRandom();
-    protected Logger logger = null;
+    protected Logger logger;
     protected CryptoContextPair inboundContextPair = new CryptoContextPair();
     private DataInputStream dataInputStream = null;
 
@@ -78,8 +78,7 @@ public class InboundTransportLayerIO implements TransportLayerInput {
 
         byte[] data = dataInputStream.readNBytes(packetLength - paddingLength - 1);
         logger.fine(() -> "Read packet data;");
-        if (paddingLength > 0)
-            dataInputStream.readNBytes(paddingLength);
+        dataInputStream.readNBytes(paddingLength);
         logger.fine(() -> "Read packet padding;");
         return new Packet(data);
     }

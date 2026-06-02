@@ -20,7 +20,7 @@ import java.util.logging.Logger;
 
 public class OutboundTransportLayerIO implements TransportLayerOutput {
     private static final SecureRandom secureRandom = new SecureRandom();
-    protected Logger logger = null;
+    protected Logger logger;
     protected CryptoContextPair outboundContextPair = new CryptoContextPair();
     private DataOutputStream dataOutputStream = null;
 
