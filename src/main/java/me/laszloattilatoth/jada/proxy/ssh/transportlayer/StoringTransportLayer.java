@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 
 public class StoringTransportLayer extends TransportLayer {
     private static final String BASE_DIR = "/tmp/JADA/storing-transport-layer";
-    private final int randomIdForStorage;
     private final String directory;
     private long outputFileCount = 0;
 
@@ -35,7 +34,7 @@ public class StoringTransportLayer extends TransportLayer {
         super(proxy, socketChannel, side, new InboundStoringTransportLayerIO(proxy.logger()), new OutboundStoringTransportLayerIO(proxy.logger()), keyExchangeFactory);
 
         SecureRandom secureRandom = new SecureRandom();
-        randomIdForStorage = secureRandom.nextInt();
+        int randomIdForStorage = secureRandom.nextInt();
         directory = BASE_DIR + "/" + randomIdForStorage;
         createDirectory();
     }
