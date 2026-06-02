@@ -4,6 +4,7 @@
 package me.laszloattilatoth.jada.proxy.ssh;
 
 import me.laszloattilatoth.jada.config.ProxyOptions;
+import me.laszloattilatoth.jada.config.ReflectionConfigLoader;
 import me.laszloattilatoth.jada.proxy.ssh.core.Side;
 
 import java.util.Map;
@@ -11,6 +12,8 @@ import java.util.Map;
 public class Options extends ProxyOptions {
     public final SideOptions clientSide = new SideOptions();
     public final SideOptions serverSide = new SideOptions();
+
+
 
     public final SideOptions sideOptions(Side side) {
         return side == Side.CLIENT ? clientSide : serverSide;
@@ -34,10 +37,9 @@ public class Options extends ProxyOptions {
                 default -> throw new InvalidOptions(String.format("Unknown SSH option  %s", entry.getKey()));
             };
             if (entry.getValue() instanceof Map entries) {
+                @SuppressWarnings("unchecked")
                 Map<String, Object> map = entries;
-                for (Map.Entry<String, Object> sideEntry : map.entrySet()) {
-                    processEntry(sideOptions, sideEntry);
-                }
+                ReflectionConfigLoader.populate(sideOptions, map);
             }
         }
     }
