@@ -21,18 +21,44 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Main runtime coordinator.
+ *
+ * <p>Initializes security, loads the YAML configuration, creates proxy runtimes and
+ * dispatches accepted connections to the matching proxy implementation.
+ */
 public class AppMain {
+    /**
+     * Factory used to instantiate protocol-specific {@code ProxyMain} implementations.
+     *
+     * <p>This is initialized early so proxy registrations are available before config loading.
+     */
     private static final ProxyFactory proxyFactory = new ProxyFactory();  // config loading requires registered proxies
+    /** Path to the YAML configuration file. */
     private final String configFileName;
+    /** Whether to only verify config (currently stored for future behavior). */
     private final boolean verifyConfig;
+    /** Logger used for startup and runtime diagnostics. */
     private final Logger logger;
 
+    /**
+     * Create an application runtime entry point.
+     *
+     * @param configFileName path to the configuration file
+     * @param verifyConfig whether to run in configuration-verification mode
+     * @param logger logger used by this application instance
+     */
     public AppMain(String configFileName, boolean verifyConfig, Logger logger) {
         this.configFileName = configFileName;
         this.verifyConfig = verifyConfig;
         this.logger = logger;
     }
 
+    /**
+     * Start the application.
+     *
+     * <p>Performs security initialization, loads configuration and enters the proxy accept loop.
+     */
     public void run() {
         if (!Sec.init()) {
             logger.severe("Unable to initialize security subsystem;");
@@ -53,6 +79,12 @@ public class AppMain {
         }
     }
 
+    /**
+     * Register all configured proxies on the selector and dispatch accepted sockets.
+     *
+     * @param configs validated proxy configurations loaded from YAML
+     * @throws IOException if selector operations fail
+     */
     private void proxyLoop(List<ProxyConfig> configs) throws IOException {
 
         Selector selector = Selector.open();

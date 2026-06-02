@@ -15,20 +15,19 @@ import java.util.Map;
 /**
  * Reflection based configuration loader and simple validation support.
  * <p>
- * Usage examples (in a class that will be loaded from a Map):
- * <p>
+ * Usage example (in a class that will be loaded from a Map):
+ * <pre>{@code
  * public class MyOptions {
- *   @ReflectionConfigLoader.ConfigKey("port")
- *   @ReflectionConfigLoader.Range(min = 1, max = 65535)
+ *   &#64;ReflectionConfigLoader.ConfigKey("port")
+ *   &#64;ReflectionConfigLoader.Range(min = 1, max = 65535)
  *   public int port = 22;
  *
- *   // nested class is supported and will be populated recursively
+ *   // Nested classes are supported and populated recursively.
  *   public SideOptions client = new SideOptions();
  * }
  *
- * To load:
- *   MyOptions opts = ReflectionConfigLoader.createFromMap(MyOptions.class, map);
- *
+ * MyOptions opts = ReflectionConfigLoader.createFromMap(MyOptions.class, map);
+ * }</pre>
  * Validation:
  * - @Range(min,max) is implemented and applied to numeric fields (int/long/float/double)
  * - You can add further validation annotations by defining a new annotation and handling it in
@@ -40,19 +39,38 @@ public final class ReflectionConfigLoader {
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
+    /**
+     * Overrides the map key used for a field.
+     */
     public @interface ConfigKey {
+        /**
+         * Configuration key name expected in the source map.
+         *
+         * @return key name
+         */
         String value();
     }
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
+    /**
+     * Numeric range validation annotation for scalar fields.
+     */
     public @interface Range {
+        /** @return inclusive lower bound */
         double min() default Double.NEGATIVE_INFINITY;
+        /** @return inclusive upper bound */
         double max() default Double.POSITIVE_INFINITY;
     }
 
     /**
      * Create a new instance of clazz and populate it from map.
+     *
+     * @param clazz target type with no-arg constructor
+     * @param map source map
+     * @param <T> target type
+     * @return populated instance
+     * @throws ProxyOptions.InvalidOptions when instantiation or mapping fails
      */
     public static <T> T createFromMap(Class<T> clazz, Map<String, Object> map) throws ProxyOptions.InvalidOptions {
         try {
@@ -71,6 +89,10 @@ public final class ReflectionConfigLoader {
     /**
      * Populate an existing instance's public/protected/private fields from the provided map.
      * Supports String, primitive numbers, their boxed types, boolean, nested classes and Map fields.
+     *
+     * @param instance target object to populate
+     * @param map source key-value map
+     * @throws ProxyOptions.InvalidOptions when type conversion or validation fails
      */
     public static void populate(Object instance, Map<String, Object> map) throws ProxyOptions.InvalidOptions {
         if (map == null) return;
@@ -134,6 +156,9 @@ public final class ReflectionConfigLoader {
         return sb.toString();
     }
 
+    /**
+     * Convert and assign a source value to a field.
+     */
     private static void setFieldValue(Object instance, Field field, Object rawValue) throws IllegalAccessException, ProxyOptions.InvalidOptions {
         Class<?> t = field.getType();
         if (rawValue == null) {
@@ -241,6 +266,9 @@ public final class ReflectionConfigLoader {
         throw new ProxyOptions.InvalidOptions("Unsupported field type " + t.getName() + " for field " + field.getName());
     }
 
+    /**
+     * Convert a scalar value to a number.
+     */
     private static Number toNumber(Object rawValue) throws ProxyOptions.InvalidOptions {
         if (rawValue instanceof Number) return (Number) rawValue;
         if (rawValue instanceof String) {
@@ -255,10 +283,16 @@ public final class ReflectionConfigLoader {
         throw new ProxyOptions.InvalidOptions("Expected numeric value but got " + rawValue.getClass().getSimpleName());
     }
 
+    /**
+     * Check whether a type is primitive or a supported wrapper.
+     */
     private static boolean isWrapperOrPrimitive(Class<?> t) {
         return t.isPrimitive() || t == Integer.class || t == Long.class || t == Double.class || t == Float.class || t == Boolean.class || t == Short.class || t == Byte.class || t == Character.class;
     }
 
+    /**
+     * Apply field-level validation annotations after assignment.
+     */
     private static void applyValidations(Object instance, Field field) throws IllegalAccessException, ProxyOptions.InvalidOptions {
         Object v = field.get(instance);
         if (v == null) return;

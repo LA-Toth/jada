@@ -10,7 +10,16 @@ import java.net.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Validates and converts raw YAML content into runtime {@link ProxyConfig} entries.
+ */
 public class ConfigLoader {
+    /**
+     * Load and validate proxy entries from the root configuration.
+     *
+     * @param config root configuration object containing raw YAML tree
+     * @throws Config.InvalidConfig when required fields are missing or invalid
+     */
     void load(Config config) throws Config.InvalidConfig {
         if (!config.hasOption("proxies"))
             throw new Config.InvalidConfig();
@@ -70,6 +79,13 @@ public class ConfigLoader {
         }
     }
 
+    /**
+     * Load one or more bind addresses.
+     *
+     * @param o either a single address string or a list of address strings
+     * @return resolved socket addresses
+     * @throws Config.InvalidConfig when address syntax is invalid
+     */
     private SocketAddress[] loadAddresses(Object o) throws Config.InvalidConfig {
         SocketAddress[] result = null;
         if (o instanceof String s) {
@@ -87,6 +103,20 @@ public class ConfigLoader {
         return result;
     }
 
+    /**
+     * Parse an address in one of the accepted forms.
+     *
+     * <p>Supported forms:
+     * <ul>
+     *   <li>{@code host:port} (IPv4/hostname),</li>
+     *   <li>{@code ip4:host:port} or {@code ipv4:host:port},</li>
+     *   <li>{@code ip6:address:port} or {@code ipv6:address:port}.</li>
+     * </ul>
+     *
+     * @param addr textual address
+     * @return resolved socket address
+     * @throws Config.InvalidConfig when parsing or DNS resolution fails
+     */
     private SocketAddress loadAddress(String addr) throws Config.InvalidConfig {
         boolean ipv4 = false;
         String[] parts = addr.split(":");
@@ -120,6 +150,13 @@ public class ConfigLoader {
         return new InetSocketAddress(address, Short.parseShort(portString));
     }
 
+    /**
+     * Parse a target address or accept the special {@code inband} target.
+     *
+     * @param addr target value from configuration
+     * @return resolved socket address, or {@code null} for inband mode
+     * @throws Config.InvalidConfig when address parsing fails
+     */
     private SocketAddress loadAddressWithInband(String addr) throws Config.InvalidConfig {
         if (addr.equals("inband"))
             return null;
