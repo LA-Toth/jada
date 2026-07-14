@@ -30,6 +30,7 @@ public class GrowingInputStream extends InputStream {
     public void addBytes(byte[] data, int offset, int length) {
         buffer.write(data, offset, length);
     }
+
     public void addString(String s, Charset charset) {
         byte[] data = s.getBytes(charset);
         addInt(data.length);   // SSH-style length prefix
@@ -65,7 +66,7 @@ public class GrowingInputStream extends InputStream {
     public int read() {
         if (readPos >= buffer.size()) {
             return -1;
-            }
+        }
         return buffer.toByteArray()[readPos++] & 0xFF;
     }
 }
